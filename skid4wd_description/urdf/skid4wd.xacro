@@ -79,6 +79,69 @@
   </sensor>
 </gazebo>
 
+<!-- Livox MID-360 LiDAR link definition -->
+<link name="lidar_link">
+  <inertial>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <mass value="0.5"/> <!-- 假设的质量，可以根据实际情况调整 -->
+    <inertia ixx="0.002" ixy="0.0" ixz="0.0" iyy="0.002" iyz="0.0" izz="0.002"/>
+  </inertial>
+  <visual> 
+    <origin xyz="0 0 -0.03" rpy="1.57 0 3.14"/>
+    <geometry>
+      <mesh filename="package://skid4wd_description/meshes/livox-mid360.dae">
+      </mesh>
+    </geometry>
+  </visual>
+  <collision>
+    <origin rpy="0 0 -0.03" xyz="0 0 3.14"/>
+    <geometry>
+      <box size="0.1 0.1 0.15"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- LiDAR Joint definition -->
+<joint name="lidar_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="lidar_link"/>
+  <origin xyz="0 0 0.2" rpy="0 0 0"/> <!-- 设置LiDAR的位置，您可以根据需要调整高度 -->
+</joint>
+
+<!-- LiDAR plugin configuration -->
+<gazebo reference="lidar_link">
+  <sensor type="ray" name="lidar_sensor">
+    <pose>0 0 0 0 0 0</pose>
+    <visualize>false</visualize>
+    <update_rate>10</update_rate>
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>360</samples>
+          <resolution>1</resolution>
+          <min_angle>-1.57</min_angle>
+          <max_angle>1.57</max_angle>
+        </horizontal>
+        <vertical>
+          <samples>30</samples>
+          <resolution>1</resolution>
+          <min_angle>-0.3</min_angle>
+          <max_angle>0.3</max_angle>
+        </vertical>
+      </scan>
+      <range>
+        <min>0.1</min>
+        <max>100</max>
+        <resolution>0.01</resolution>
+      </range>
+    </ray>
+    <plugin name="gazebo_ros_lidar" filename="libgazebo_ros_laser.so">
+      <topicName>/livox/lidar/scan</topicName> <!-- 发布的激光雷达话题 -->
+      <frameName>lidar_link</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
 <link name="wheel_front_left_1">
   <inertial>
     <origin rpy="0 0 0" xyz="2.3943220794908626e-08 -0.009939147977344326 -1.8492763799449197e-08"/>
