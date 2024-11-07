@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="x" default="0"/>
+    <arg name="y" default="0"/>
+    <arg name="z" default="0.5"/>
+
+    <group ns="skid4wd">
+        <!-- 机器人描述的参数 -->
+        <param name="robot_description" command="xacro $(find skid4wd_description)/urdf/skid4wd.xacro"/>
+
+        <!-- Spawn 模型到 Gazebo -->
+        <node name="ski4wd_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+              args="-urdf -param robot_description -model skid4wd -x $(arg x) -y $(arg y) -z $(arg z)"/>
+    </group>
+</launch>

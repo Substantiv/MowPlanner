@@ -1,0 +1,35 @@
+<launch>
+    <!-- Default: Lawn World -->
+    <arg name="world_name" default="$(find skid4wd_description)/worlds/lawn_world.world"/>
+
+    <!-- Launch Gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="world_name" value="$(arg world_name)"/>
+        <arg name="paused" value="false"/>
+    </include>
+
+    <!-- Spawn URDF Model -->
+    <include file="$(find skid4wd_description)/launch/spawn.launch"/>
+
+    <!-- Spawn Controllers -->
+    <include file="$(find skid4wd_description)/launch/controller.launch"/>
+
+    <!-- Create TF transforms from /map to /base_link -->
+    <node name="map2baselink" pkg="skid4wd_description" type="odom_process.py" output="screen"/>
+
+    <!-- Launch Rviz -->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find skid4wd_description)/config/skid4wd_rviz.rviz" />
+
+     <!-- Convert joint states to TF transforms for rviz -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+        respawn="false" output="screen">
+        <remap from="/joint_states" to="/skid4wd/joint_states" />
+    </node>
+
+    <!-- Launch Trajectory Generation Script -->
+    <node name="traj_generate" pkg="mpc_follower" type="traj_generate.py" output="screen"/>
+
+    <!-- Launch Local Planner Script -->
+    <node name="local_planner" pkg="mpc_follower" type="local_planner.py" output="screen"/>
+
+</launch>
