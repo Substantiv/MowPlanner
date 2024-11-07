@@ -117,4 +117,4 @@ rosrun plotjuggler plotjuggler
 ```
 
 
-![plotjuggler界面和功能](https://i-blog.csdnimg.cn/blog_migrate/81974b1199fd97b2b28ea56e3f94344f.jpeg)
+![plotjuggler界面和功能](./figure/plotjuggler.png)
