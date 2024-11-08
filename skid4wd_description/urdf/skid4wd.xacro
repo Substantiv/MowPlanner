@@ -4,6 +4,8 @@
 <xacro:include filename="$(find skid4wd_description)/urdf/materials.xacro" />
 <xacro:include filename="$(find skid4wd_description)/urdf/skid4wd.trans" />
 <xacro:include filename="$(find skid4wd_description)/urdf/skid4wd.gazebo" />
+<xacro:include filename="$(find realsense_ros_gazebo)/xacro/tracker.xacro"/>
+<xacro:include filename="$(find realsense_ros_gazebo)/xacro/depthcam.xacro"/>
 
 <xacro:property name="PI" value="3.14"/>
 
@@ -32,21 +34,21 @@
 <!-- IMU link definition -->
 <link name="imu_link">
   <inertial>
-    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <origin rpy="0 0 0.02" xyz="0 0 0"/>
     <mass value="0.1"/>
     <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
   </inertial>
   <visual>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <geometry>
-      <cylinder length="0.1" radius="0.02"/>
+      <cylinder length="0.01" radius="0.02"/>
     </geometry>
     <material name="blue"/>
   </visual>
   <collision>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <geometry>
-      <cylinder length="0.1" radius="0.02"/>
+      <cylinder length="0.01" radius="0.02"/>
     </geometry>
   </collision>
 </link>
@@ -55,7 +57,7 @@
 <joint name="imu_joint" type="fixed">
   <parent link="base_link"/>
   <child link="imu_link"/>
-  <origin xyz="0.1 0 0.1" rpy="0 0 0"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
 </joint>
 
 <!-- IMU plugin for 'body_link' -->
@@ -79,7 +81,11 @@
   </sensor>
 </gazebo>
 
-<!-- Livox MID-360 LiDAR link definition -->
+<xacro:realsense_d435 sensor_name="d435" parent_link="base_link" rate="10">
+<origin rpy="0 0 0 " xyz="0.27 0 0.09"/>
+</xacro:realsense_d435>
+
+<!-- LiDAR link definition -->
 <link name="lidar_link">
   <inertial>
     <origin rpy="0 0 0" xyz="0 0 0"/>
