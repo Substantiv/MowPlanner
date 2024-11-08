@@ -136,7 +136,7 @@
       </range>
     </ray>
     <plugin name="gazebo_ros_lidar" filename="libgazebo_ros_laser.so">
-      <topicName>/livox/lidar/scan</topicName> <!-- 发布的激光雷达话题 -->
+      <topicName>/skid4wd/livox/lidar/scan</topicName> <!-- 发布的激光雷达话题 -->
       <frameName>lidar_link</frameName>
     </plugin>
   </sensor>

@@ -1,10 +1,10 @@
-## 四轮差速斜坡仿真环境搭建方法
+## 四轮差速仿真环境搭建方法
 
-包含两个package: mpc_follower和skid4wd_description
+包含两个package: ```mpc_follower```和```skid4wd_description```
 
-* mpc_follower为使用MPC建立的planner和controller, 里程计采用Gazebo中模型的位置和姿态。
+* ```mpc_follower```：使用MPC建立的planner和controller；发布参考轨迹。
 
-* skid4wd_description主要用于搭建Gazebo环境中的车辆模型和环境模型，并处理里程计信息。
+* ```skid4wd_description```：主要用于搭建Gazebo环境中的车辆模型和环境模型，并处理里程计信息。车辆模型中包含两种传感器：IMU和三维激光雷达(Livox Mid360 Lidar)，但控制过程中用到的里程计信息是Gazebo中模型的位置和姿态。环境模型采用Blender进行建立，对应Blender文件在```skid4wd_description/urdf/terrain.blend```。
 
 ![rviz显示效果](./figure/rviz.png)
 
@@ -19,7 +19,7 @@ pip3 install casadi
 ```
 
 ### 2.仿真环境运行
-将需要的模型复制到gazebo模型库所在位置
+将建立的地形模型复制到gazebo模型库所在位置
 ```
 cd src/skid4wd_description/meshes/
 cp -r Lawn/ ~/.gazebo/models
