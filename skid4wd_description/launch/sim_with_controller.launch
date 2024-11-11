@@ -26,10 +26,4 @@
         <remap from="/joint_states" to="/skid4wd/joint_states" />
     </node>
 
-    <!-- Launch Trajectory Generation Script -->
-    <node name="traj_generate" pkg="mpc_follower" type="traj_generate.py" output="screen"/>
-
-    <!-- Launch Local Planner Script -->
-    <node name="local_planner" pkg="mpc_follower" type="local_planner.py" output="screen"/>
-
 </launch>

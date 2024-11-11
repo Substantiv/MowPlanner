@@ -10,12 +10,23 @@
 
 ![gazebo显示效果](./figure/gazebo.png)
 
+![建图效果](./figure/map.png)
+
 ### 1.环境依赖安装
 
-MPC控制器的优化库
+安装MPC控制器的优化库依赖包
 
 ```
 pip3 install casadi  
+```
+安装rtabmap 建图依赖包
+```
+sudo apt install ros-noetic-rtabmap
+sudo apt install ros-noetic-rtabmap-*
+```
+安装rviz octomap地图可视化插件
+```
+sudo apt-get install ros-noetic-octomap-rviz-plugins
 ```
 
 ### 2.仿真环境运行
@@ -32,15 +43,32 @@ catkin_make
 source devel/setup.bash
 ```
 
-运行仿真环境
+运行斜坡仿真环境
 ```
 roslaunch skid4wd_description sim_with_controller.launch
+```
+
+新建另外一个终端，运行建图文件,借助rtabmap和深度相机进行坡度建图
+
+```
+roslaunch skid4wd_description rs_rtabmap_d435.launch
+```
+
+新建另外一个终端，控制小车运动。包含两种控制模式：GUI控制和mpc_follower工具包控制，**两者选一个即可**
+```
+roslaunch skid4wd_description rqt_steering.launch   # GUI控制
+roslaunch skid4wd_description mpc_planner.launch    # mpc_follower工具包控制
 ```
 
 ### 3. 文件结构
 ```
 .
 ├── CMakeLists.txt -> /opt/ros/noetic/share/catkin/cmake/toplevel.cmake
+├── figure
+│   ├── gazebo.png
+│   ├── map.png
+│   ├── plotjuggler.png
+│   └── rviz.png
 ├── mpc_follower                   # MPC Planner Package
 │   ├── CMakeLists.txt
 │   ├── launch
@@ -48,37 +76,38 @@ roslaunch skid4wd_description sim_with_controller.launch
 │   ├── scripts
 │   │   ├── local_planner.py       # MPC_Traj_follower Node
 │   │   ├── MPC.py                 # MPC class
-│   │   ├── __pycache__
-│   │   │   ├── MPC.cpython-36.pyc
-│   │   │   └── MPC.cpython-38.pyc
 │   │   └── traj_generate.py       # Generate Reference Trajectory Node
 │   └── src
 ├── README.md
-└── skid4wd_description            # skid4wd Model and World Package
+├── realsense_ros_gazebo        # realsense Package
+└── skid4wd_description         # skid4wd Model and World Package
     ├── CMakeLists.txt
     ├── config
-    │   └── controller.yaml
+    │   ├── controller.yaml
+    │   └── skid4wd_rviz.rviz
     ├── launch
     │   ├── controller.launch
+    │   ├── mpc_planner.launch
     │   ├── rqt_steering.launch
+    │   ├── rs_rtabmap_d435.launch
     │   ├── sim_with_controller.launch
     │   └── spawn.launch
-    ├── meshes                    # car model and environment model
+    ├── meshes                  # car model and environment model
     │   ├── base_link.stl
-    │   ├── Lawn                  # Lawn Model
+    │   ├── Lawn                # Lawn Model
     │   │   ├── model.config
     │   │   └── model.sdf
+    │   ├── livox-mid360.dae
     │   ├── wheel.dae
     │   ├── wheel_front_left_1.stl
     │   ├── wheel_front_right_1.stl
     │   ├── wheel_rear_left_1.stl
     │   └── wheel_rear_right_1.stl
     ├── package.xml
-    ├── rviz_config
-    │   └── skid4wd_rviz.rviz
     ├── scripts
     │   └── odom_process.py
     ├── urdf
+    │   ├── livox_mid360.urdf.xacro
     │   ├── materials.xacro
     │   ├── skid4wd.gazebo
     │   ├── skid4wd.trans
