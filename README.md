@@ -6,11 +6,15 @@
 
 * ```skid4wd_description```：主要用于搭建Gazebo环境中的车辆模型和环境模型，并处理里程计信息。车辆模型中包含两种传感器：IMU,二维激光雷达和Intel D435深度相机，但控制过程中用到的里程计信息是Gazebo中模型的位置和姿态。环境模型采用Blender进行建立，对应Blender文件在```skid4wd_description/urdf/terrain.blend```。
 
+**rviz静态显示效果:**
 ![rviz显示效果](./figure/rviz.png)
 
+**rviz动态显示效果:**
+![rviz动态显示效果](./figure/rviz-planner.gif)
+
+**gazebo复杂地形:**
 ![gazebo显示效果](./figure/gazebo.png)
 
-![建图效果](./figure/map.png)
 
 ### 1.环境依赖安装
 

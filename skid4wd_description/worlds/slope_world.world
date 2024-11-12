@@ -87,15 +87,15 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <state world_name='default'>
-      <sim_time>142 622000000</sim_time>
-      <real_time>6 180071652</real_time>
-      <wall_time>1730773483 259652622</wall_time>
-      <iterations>6156</iterations>
+      <sim_time>797 757000000</sim_time>
+      <real_time>601 761625984</real_time>
+      <wall_time>1731314246 272449568</wall_time>
+      <iterations>598520</iterations>
       <model name='Slope'>
-        <pose>0.317946 -0.30204 0.28434 0 -0 0</pose>
+        <pose>-0.78493 14.3238 0.28434 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose>0.317946 -0.399051 0.495855 -1.51698 0 0</pose>
+          <pose>-0.78493 14.2267 0.495855 -1.51698 0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -117,7 +117,7 @@
     </state>
     <gui fullscreen='0'>
       <camera name='user_camera'>
-        <pose>52.6743 -16.5846 6.46029 0 -0.008001 2.99759</pose>
+        <pose>35.275 0.161139 7.76275 0 0.183999 3.10559</pose>
         <view_controller>orbit</view_controller>
         <projection_type>perspective</projection_type>
       </camera>

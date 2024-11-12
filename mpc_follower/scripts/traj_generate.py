@@ -14,10 +14,10 @@ class FigureEightPublisher:
 
     def generate_straight_line(self):
         # 生成直线轨迹
-        t = np.linspace(0, 5, self.num_points * self.total_cycles)  # 直线的 t 值，假设长度为 10
-        x = t  # x 轴沿着 t 变化
-        y = np.zeros_like(t)  # y 轴保持为零（直线在 y 轴上不变化）
-        yaw = np.zeros_like(t)  # 假设没有偏航角，保持朝一个方向
+        t = np.linspace(0, 20, self.num_points * self.total_cycles)  # 直线的 t 值，假设长度为 10
+        y = t  # x 轴沿着 t 变化
+        x = np.zeros_like(t)  # y 轴保持为零（直线在 y 轴上不变化）
+        yaw = np.zeros_like(t) + 1.57  # 假设没有偏航角，保持朝一个方向
 
         # 返回轨迹点（x, y, yaw）
         return np.vstack((x, y, yaw)).T  # 返回 (x, y, yaw) 形式的点

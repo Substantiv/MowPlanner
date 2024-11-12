@@ -1,6 +1,9 @@
 <launch>
-    <!-- Default: Lawn World -->
-    <arg name="world_name" default="$(find skid4wd_description)/worlds/lawn_world.world"/>
+    <!-- Load World -->
+    <!-- simple slope -->
+    <arg name="world_name" default="$(find skid4wd_description)/worlds/slope_world.world"/>
+    <!-- complex lawn -->
+    <!-- <arg name="world_name" default="$(find skid4wd_description)/worlds/lawn_world.world"/> -->
 
     <!-- Launch Gazebo -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
