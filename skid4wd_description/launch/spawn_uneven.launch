@@ -10,7 +10,7 @@
 
     <!-- Launch Gazebo -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-        <arg name="world_name" value="$(find carsim)/worlds/map_$(arg map_name).world"/>
+        <arg name="world_name" value="$(find skid4wd_description)/worlds/map_$(arg map_name).world"/>
         <arg name="paused" value="false"/>
     </include>
 
