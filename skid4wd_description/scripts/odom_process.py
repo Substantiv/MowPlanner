@@ -15,7 +15,7 @@ car_curr_state = None
 def model_states_cb(data):
     # 获取四轮差速车模型的gazebo状态
     global car_curr_state
-    car_curr_state = data.pose[2]  # ski4wd在gazebo中的状态
+    car_curr_state = data.pose[-1]  # ski4wd在gazebo中的状态
 
 if __name__ == '__main__':
     rospy.init_node('odom_process')

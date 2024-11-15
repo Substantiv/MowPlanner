@@ -29,7 +29,7 @@ class Local_Planner():
         self.__pub_local_path = rospy.Publisher('mpc/local_path', Path, queue_size=10)                              # 局部轨迹的发布者，发布MPC规划的局部轨迹
         self.__pub_rtc_cmd = rospy.Publisher('/skid4wd/drive_controller/cmd_vel', Twist, queue_size=10)             # cmd_vel的发布者，发布由MPC求解出的最优控制
         self._model_states = rospy.Subscriber('/skid4wd/gazebo_odom', Odometry, self._model_states_cb)              # gazebo 模型状态的订阅者，订阅里程计获得gazebo模型的位置
-        self._sub_traj_waypts = rospy.Subscriber('/mpc/traj_path', Path, self._vomp_path_callback)                  # 期望轨迹的订阅者，订阅规划期发布的期望路点
+        self._sub_traj_waypts = rospy.Subscriber('/ugv/traj_path', Path, self._vomp_path_callback)                  # 期望轨迹的订阅者，订阅规划期发布的期望路点
         
         self.control_cmd = Twist()      # cmd_vel Twist消息
 

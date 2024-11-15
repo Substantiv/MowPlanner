@@ -21,7 +21,7 @@
     <node name="map2baselink" pkg="skid4wd_description" type="odom_process.py" output="screen"/>
 
     <!-- Launch Rviz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find skid4wd_description)/config/skid4wd_rviz.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find skid4wd_description)/config/skid4wd_orabmap_rviz.rviz" />
 
      <!-- Convert joint states to TF transforms for rviz -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
