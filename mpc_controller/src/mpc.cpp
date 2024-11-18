@@ -41,7 +41,7 @@ void MPC::init(ros::NodeHandle &nh)
     cmd.angular.z = 0.0;
 
     // pos_cmd_pub_ = nh.advertise<uneven_map::ControlCmd>("cmd", 200);
-    pos_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("cmd", 200);
+    pos_cmd_pub_ = nh.advertise<geometry_msgs::Twist>("/skid4wd/drive_controller/cmd_vel", 200);
     vis_pub = nh.advertise<visualization_msgs::Marker>("/following_path", 10);
     predict_pub = nh.advertise<visualization_msgs::Marker>("/predict_path", 10);
     ref_pub = nh.advertise<visualization_msgs::Marker>("/reference_path", 10);
