@@ -4,5 +4,18 @@
     ],
     "python.analysis.extraPaths": [
         "/opt/ros/noetic/lib/python3/dist-packages"
-    ]
+    ],
+    "files.associations": {
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "*.ipp": "cpp",
+        "*.tcc": "cpp",
+        "core": "cpp",
+        "bitset": "cpp",
+        "iostream": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
+    },
+    "ros.distro": "noetic"
 }

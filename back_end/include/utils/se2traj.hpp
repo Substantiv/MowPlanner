@@ -561,7 +561,7 @@ namespace uneven_planner
         }
     };
 
-    template <int Dim>  class MinJerkOpt
+    template <int Dim>  class MinJerkOpt        // Dim是维度,xy维度为2,yaw维度为1
     {
     public:
         int N;
@@ -600,6 +600,7 @@ namespace uneven_planner
             headPVA = headState;
             tailPVA = tailState;
 
+            // 通过点程计算时间的1次到5次幂
             T1 = ts;
             T2 = T1.cwiseProduct(T1);
             T3 = T2.cwiseProduct(T1);
@@ -718,6 +719,7 @@ namespace uneven_planner
         // then get ∂J/∂c, ∂J/∂T 
         inline void calJerkGradCT(Eigen::MatrixXd& gdC, Eigen::VectorXd &gdT) 
         {
+            // 计算jerk对系数矩阵的偏导 ∂J/∂c
             gdC.resize(6 * N, Dim); 
             for (int i = 0; i < N; i++)
             {
@@ -733,6 +735,7 @@ namespace uneven_planner
                 gdC.block<3, Dim>(6 * i, 0).setZero();
             }
 
+            // 计算jerk对系数矩阵的偏导 ∂J/∂时间
             gdT.resize(N);
             for (int i = 0; i < N; i++)
             {

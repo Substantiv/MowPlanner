@@ -39,7 +39,7 @@ namespace uneven_planner
         {
             debug_pub = nh.advertise<visualization_msgs::Marker>("/alm/debug_path", 1);
         }
-            debug_pub = nh.advertise<visualization_msgs::Marker>("/alm/debug_path", 1);
+            // debug_pub = nh.advertise<visualization_msgs::Marker>("/alm/debug_path", 1);
 
         return;
     }
@@ -165,31 +165,37 @@ namespace uneven_planner
     static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::VectorXd& grad);
     static int earlyExit(void* ptrObj, const Eigen::VectorXd& x, const Eigen::VectorXd& grad, 
                          const double fx, const double step, int k, int ls);
-    int ALMTrajOpt::optimizeSE2Traj(const Eigen::MatrixXd &initStateXY, \
-                                    const Eigen::MatrixXd &endStateXY , \
-                                    const Eigen::MatrixXd &innerPtsXY , \
-                                    const Eigen::VectorXd &initYaw    , \
-                                    const Eigen::VectorXd &endYaw     , \
-                                    const Eigen::VectorXd &innerPtsYaw, \
-                                    const double & totalTime            )
+    int ALMTrajOpt::optimizeSE2Traj(const Eigen::MatrixXd &initStateXY,   // 初始位置 (x, y)
+                                    const Eigen::MatrixXd &endStateXY,    // 终止位置 (x, y)
+                                    const Eigen::MatrixXd &innerPtsXY,    // 中间点 (x, y)
+                                    const Eigen::VectorXd &initYaw,       // 初始航向角
+                                    const Eigen::VectorXd &endYaw,        // 终止航向角
+                                    const Eigen::VectorXd &innerPtsYaw,   // 中间航向角
+                                    const double &totalTime               // 轨迹总时间       
+                                    )
     {
+        // 优化器计算状态：0为成功优化、1为优化器失败(如未收敛)、2为超过最大迭代次数
         int ret_code = 0;
         
         in_opt = true;
 
-        piece_xy = innerPtsXY.cols() + 1;
-        piece_yaw = innerPtsYaw.size() + 1;
-        minco_se2.reset(piece_xy, piece_yaw);
+        // 初始化轨迹信息
+        piece_xy = innerPtsXY.cols() + 1;           // 位置被分割的段数
+        piece_yaw = innerPtsYaw.size() + 1;         // yaw被分割的段数
+        minco_se2.reset(piece_xy, piece_yaw);       // 重置轨迹管理器
         init_xy = initStateXY;
         end_xy = endStateXY;
         init_yaw = initYaw.transpose();
         end_yaw = endYaw.transpose();
 
+        // 【优化变量数目】： xy优化变量数目 + yaw优化变量数目 + 时间参数
         int variable_num = 2*(piece_xy-1) + (piece_yaw-1) + 1;
-        // non-holonomic
-        equal_num = piece_xy * (int_K + 1);
+        // 【非完整约束】
+        equal_num = piece_xy * (int_K + 1);             // 等式约束
         // longitude velocity, longitude acceleration, latitude acceleration, curvature, attitude, surface variation
-        non_equal_num = piece_xy * (int_K + 1) * 6;
+        non_equal_num = piece_xy * (int_K + 1) * 6;     // 不等式约束
+
+        // 这些变量和拉格朗日乘子用于增广拉格朗日法的约束优化
         hx.resize(equal_num);
         hx.setZero();
         lambda.resize(equal_num);
@@ -202,20 +208,23 @@ namespace uneven_planner
         scale_cx.resize(equal_num+non_equal_num);
         scale_cx.setConstant(1.0);
 
-        // init solution
+        /* 初始化解空间 */ 
         Eigen::VectorXd x;
         x.resize(variable_num);
 
-        dim_T = 1;
+        // 时间变量
+        dim_T = 1; // 时间变量维度
         double& tau = x(0);
+        // 中间点XY坐标优化变量(经过Map映射x得到)
         Eigen::Map<Eigen::MatrixXd> Pxy(x.data()+dim_T, 2, piece_xy-1);
+        // 中间点Yaw优化变量(经过Map映射x得到)
         Eigen::Map<Eigen::MatrixXd> Pyaw(x.data()+dim_T+2*(piece_xy-1), 1, piece_yaw-1);
-
+        // logC2()对总时间 totalTime 进行非线性缩放，使其更适合优化问题
         tau = logC2(totalTime);
         Pxy = innerPtsXY;
         Pyaw = innerPtsYaw.transpose();
 
-        // lbfgs params
+        // lbfgs params: LBFGS 优化算法
         lbfgs::lbfgs_parameter_t lbfgs_params;
         lbfgs_params.mem_size = mem_size;
         lbfgs_params.past = past;
@@ -231,11 +240,13 @@ namespace uneven_planner
         if (use_scaling)
             initScaling(x);
 
+        /* 优化循环 */
         while (true)
         {
             int result = lbfgs::lbfgs_optimize(x, inner_cost, &innerCallback, nullptr, 
                                                &earlyExit, this, lbfgs_params);
 
+            // 如果 LBFGS 收敛或满足退出条件，则结束循环
             if (result == lbfgs::LBFGS_CONVERGENCE ||
                 result == lbfgs::LBFGS_CANCELED ||
                 result == lbfgs::LBFGS_STOP || 
@@ -254,6 +265,7 @@ namespace uneven_planner
                 break;
             }
 
+            // 更新拉格朗日乘子, 检查收敛性
             updateDualVars();
 
             if(judgeConvergence())
@@ -262,6 +274,7 @@ namespace uneven_planner
                 break;
             }
 
+            // 超过最大迭代次数则强制退出
             if(++iter > max_iter)
             {
                 ret_code = 2;

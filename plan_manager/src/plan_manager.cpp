@@ -83,13 +83,18 @@ namespace uneven_planner
         Eigen::VectorXd inner_yaw;
         double total_time;
     
+        // 起点：位置、速度、加速度
         init_xy << init_path[0].x(), 0.0, 0.0, \
                    init_path[0].y(), 0.0, 0.0;
+        // 终点：位置、速度、加速度
         end_xy << init_path.back().x(), 0.0, 0.0, \
                    init_path.back().y(), 0.0, 0.0;
+        // 起点： yaw角、角速度、角加速度
         init_yaw << init_path[0].z(), 0.0, 0.0;
+        // 终点： yaw角、角速度、角加速度
         end_yaw << init_path.back().z(), 0.0, 0.0;
 
+        // 添加速度
         init_xy.col(1) << init_sig_vel * cos(init_yaw(0)), init_sig_vel * sin(init_yaw(0));
         end_xy.col(1) << init_sig_vel * cos(end_yaw(0)), init_sig_vel * sin(end_yaw(0));
         
@@ -97,10 +102,12 @@ namespace uneven_planner
         double temp_len_pos = 0.0;
         double total_len = 0.0;
         double piece_len_yaw = piece_len / yaw_piece_times;
-        std::vector<Eigen::Vector2d> inner_xy_node;
-        std::vector<double> inner_yaw_node;
+        // 中间插入的xy和yaw的节点
+        std::vector<Eigen::Vector2d> inner_xy_node;      // 存储离散化的位置点
+        std::vector<double> inner_yaw_node;              // 存储离散化的yaw
         for (int k=0; k<init_path.size()-1; k++)
         {
+            // 当前段的二维平面长度
             double temp_seg = (init_path[k+1] - init_path[k]).head(2).norm();
             temp_len_yaw += temp_seg;
             temp_len_pos += temp_seg;
@@ -131,8 +138,8 @@ namespace uneven_planner
             inner_yaw(i) = inner_yaw_node[i];
         }
     
-        traj_opt.optimizeSE2Traj(init_xy, end_xy, inner_xy, \
-                        init_yaw, end_yaw, inner_yaw, total_time);
+        // 对SE2Traj进行轨迹优化
+        traj_opt.optimizeSE2Traj(init_xy, end_xy, inner_xy, init_yaw, end_yaw, inner_yaw, total_time);
         
         // visualization
         SE2Trajectory back_end_traj = traj_opt.getTraj();

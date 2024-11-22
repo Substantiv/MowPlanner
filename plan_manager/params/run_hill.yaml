@@ -55,29 +55,29 @@ manager_node:
     in_debug: false
 
   manager:
-    piece_len: 0.3
+    piece_len: 0.3                # 片段长度
     mean_vel: 0.5
     init_time_times: 1.2
-    yaw_piece_times: 2.0
+    yaw_piece_times: 2.0          # yaw 片段倍数
     init_sig_vel: 0.05
 
 mpc:
-  du_threshold: 0.001
-  dt: 0.02
-  max_iter: 150
-  predict_steps: 30
-  delay_num: 0
-  max_omega: 24.0
-  max_domega: 10.0
-  max_speed: 0.8
-  min_speed: -0.8
-  max_accel: 10.0
-  test_mpc: false
-  bk_mode: false
-  matrix_q: [100.0, 100.0, 2.0]
-  matrix_r: [0.01, 0.01]
-  matrix_rd: [0.01, 100.0]
-  max_steer: 0.505
-  max_dsteer: 1.5
-  wheel_base: 0.26
-  model_type: 2 
+  du_threshold: 0.001             # 控制输入变化的阈值，若两次迭代的输入变化小于此值，MPC优化迭代将终止（收敛条件）
+  dt: 0.02                        # 控制器的时间步长（秒），定义了离散时间内每一步的间隔
+  max_iter: 150                   # 每次求解控制优化问题的最大迭代次数。
+  predict_steps: 30               # 预测时间步长
+  delay_num: 0                    # 控制系统中建模的延迟步数，用于考虑执行器或传感器延迟
+  max_omega: 50.0                 # 最大角速度
+  max_domega: 30.0                # 最大角加速度
+  max_speed: 0.8                  # 最大速度
+  min_speed: -0.8                 # 最大速度(负)
+  max_accel: 10.0                 # 最大加速度
+  test_mpc: false                 # 是否启用测试模式
+  bk_mode: false                  # 备份模式：存储路径，分析轨迹
+  matrix_q: [0.0, 0.0, 100.0] # 状态误差的权重向量
+  matrix_r: [0.01, 0.01]          # 控制输入的权重向量
+  matrix_rd: [0.01, 100.0]        # 控制输入变化率的权重向量
+  max_steer: 0.505                # 最大转向角（rad）
+  max_dsteer: 1.5                 # 最大转向角变化率（rad/s）
+  wheel_base: 0.32                # 车辆的轴距（m）
+  model_type: 1                   # 底盘选择(0为全向轮，1为差速轮，2为阿克曼轮)
