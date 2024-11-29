@@ -44,13 +44,13 @@ manager_node:
     gamma: 1.0
     epsilon_con: 0.001
     max_iter: 10
-    g_epsilon: 1.0e-03
-    min_step: 1.0e-32
-    inner_max_iter: 10000
-    delta: 1.0e-4
-    mem_size: 256
-    past: 3
-    int_K: 16
+    g_epsilon: 1.0e-03        # 当梯度的范数小于 g_epsilon 时，算法认为已经达到了局部极小值，可以停止迭代
+    min_step: 1.0e-32         # 步长的最小值限制
+    inner_max_iter: 10000     # 内部迭代的最大次数
+    delta: 1.0e-4             # 目标函数值的变化阈值
+    mem_size: 256             # 内存大小，即保存的历史信息量
+    past: 3                   # 用于检查目标函数值的历史窗口大小
+    int_K: 16                 # TODO
     in_test: false
     in_debug: false
 

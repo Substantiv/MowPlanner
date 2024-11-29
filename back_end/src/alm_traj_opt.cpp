@@ -549,8 +549,7 @@ namespace uneven_planner
                 grad_yaw = grad_se2(2);
                 gdCxy[constrain_idx].block<6, 2>(i * 6, 0) += (beta0_xy * grad_p.transpose() + \
                                                                beta1_xy * grad_v.transpose());
-                gdTxy[constrain_idx](i) += (grad_p.dot(vel) + \
-                                            grad_v.dot(acc)) * alpha;
+                gdTxy[constrain_idx](i) += (grad_p.dot(vel) + grad_v.dot(acc)) * alpha;
                 gdCyaw[constrain_idx].block<6, 1>(yaw_idx * 6, 0) += beta0_yaw * grad_yaw;
                 gdTyaw[constrain_idx](yaw_idx) += -(grad_yaw * dyaw) * yaw_idx;
                 gdTxy[constrain_idx](i) += (grad_yaw * dyaw) * (alpha+i);
@@ -581,8 +580,7 @@ namespace uneven_planner
                 grad_yaw += grad_se2(2);
                 gdCxy[constrain_idx].block<6, 2>(i * 6, 0) += (beta0_xy * grad_p.transpose() + \
                                                                beta2_xy * grad_a.transpose());
-                gdTxy[constrain_idx](i) += (grad_p.dot(vel) + \
-                                            grad_a.dot(jer) ) * alpha;
+                gdTxy[constrain_idx](i) += (grad_p.dot(vel) + grad_a.dot(jer) ) * alpha;
                 gdCyaw[constrain_idx].block<6, 1>(yaw_idx * 6, 0) += beta0_yaw * grad_yaw;
                 gdTyaw[constrain_idx](yaw_idx) += -(grad_yaw * dyaw) * yaw_idx;
                 gdTxy[constrain_idx](i) += (grad_yaw * dyaw) * (alpha+i);
@@ -600,8 +598,7 @@ namespace uneven_planner
                 grad_yaw = grad_se2(2);
                 gdCxy[constrain_idx].block<6, 2>(i * 6, 0) += (beta0_xy * grad_p.transpose() + \
                                                                beta1_xy * grad_v.transpose());
-                gdTxy[constrain_idx](i) += (grad_p.dot(vel) + \
-                                            grad_v.dot(acc)) * alpha;
+                gdTxy[constrain_idx](i) += (grad_p.dot(vel) + grad_v.dot(acc)) * alpha;
                 gdCyaw[constrain_idx].block<6, 1>(yaw_idx * 6, 0) += (beta0_yaw * grad_yaw + \
                                                                       beta1_yaw * grad_dyaw);
                 gdTyaw[constrain_idx](yaw_idx) += -(grad_yaw * dyaw +

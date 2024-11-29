@@ -154,7 +154,7 @@
   <inertial>
     <origin rpy="0 0 0" xyz="2.3943220794908626e-08 -0.009939147977344326 -1.8492763799449197e-08"/>
     <mass value="0.552895033700559"/>
-    <inertia ixx="0.001246" ixy="0.0" ixz="-0.0" iyy="0.002096" iyz="-0.0" izz="0.001246"/>
+    <inertia ixx="0.001246" ixy="0.0" ixz="0.0" iyy="0.002096" iyz="0.0" izz="0.001246"/>
   </inertial>
   <visual>
     <origin rpy="0 0 0" xyz="-0.01 0.005 -0.017"/>
@@ -232,14 +232,6 @@
       <cylinder length="0.07" radius="0.08"/>
     </geometry>
   </collision>
-  <!-- Rear Right Wheel Force Sensor -->
-  <plugin name="force_sensor_plugin" filename="libgazebo_ros_force_torque_sensor.so">
-    <robotNamespace>/robot</robotNamespace>
-    <sensor_name>force_sensor_rear_right</sensor_name>   <!-- 传感器名称 -->
-    <topic_name>/skid4wd/rear_right_force</topic_name>   <!-- 发布力数据的ROS话题 -->
-    <frame>wheel_rear_right_1</frame>                     <!-- 传感器参考框架 -->
-    <update_rate>1000</update_rate>                       <!-- 传感器的更新频率 -->
-  </plugin>
 </link>
 
 <joint name="joint_front_left" type="continuous">

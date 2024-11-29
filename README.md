@@ -1,5 +1,7 @@
 ## 四轮差速仿真环境搭建方法
 
+![](./support_file/figure/FourWheelSkidDrive.png)
+
 ### 1.MPC Planner和RTabMap 实时建图
 
 包含两个package: ```mpc_follower```和```skid4wd_description```
@@ -7,6 +9,8 @@
 * ```mpc_follower```：使用MPC建立的planner和controller；发布参考轨迹。（对应launch文件和scripts文件已经迁移到mpc_controller工具包）
 
 * ```skid4wd_description```：主要用于搭建Gazebo环境中的车辆模型和环境模型，并处理里程计信息。车辆模型中包含两种传感器：IMU,二维激光雷达和Intel D435深度相机，但控制过程中用到的里程计信息是Gazebo中模型的位置和姿态。环境模型采用Blender进行建立，对应Blender文件在```skid4wd_description/urdf/terrain.blend```。
+
+
 
 #### 1.1 环境依赖安装
 
@@ -60,15 +64,17 @@ roslaunch skid4wd_description mpc_controller.launch    # mpc_controller工具包
 #### 1.3 演示效果
 
 **rviz静态显示效果:**
-![rviz显示效果](./figure/rviz.png)
+![rviz显示效果](./support_file/figure/rviz.png)
 
 **rviz动态显示效果:**
-![rviz动态显示效果](./figure/rviz-planner.gif)
+![rviz动态显示效果](./support_file/figure/rviz-planner.gif)
 
 **gazebo复杂地形:**
-![gazebo显示效果](./figure/gazebo.png)
+![gazebo显示效果](./support_file/figure/gazebo.png)
 
-### 2. uneven planner 
+### 2. Uneven Planner 
+
+MPC控制器将原项目的mpc_controller功能包替换为mpc_follower功能包
 
 #### 2.1 环境依赖安装
 环境依赖安装参考[uneven planner](https://github.com/ZJU-FAST-Lab/uneven_planner)
@@ -80,9 +86,15 @@ roslaunch skid4wd_description mpc_controller.launch    # mpc_controller工具包
 roslaunch skid4wd_description sim_with_uneven.launch
 ```
 
+新建另外一个终端，mpc_follower工具包控制小车运动。
+```
+roslaunch skid4wd_description rqt_steering.launch      # GUI控制
+roslaunch skid4wd_description mpc_controller.launch    # mpc_controller工具包控制
+```
+
 #### 2.3 运行效果
 
-![uneven planner显示效果](./figure/UnevenPlannerGazebo.png)
+![uneven planner显示效果](./support_file/figure/UnevenPlannerGazebo.png)
 
-![uneven planner显示效果](./figure/UnevenPlannerRviz.png)
+![uneven planner显示效果](./support_file/figure/UnevenPlannerRviz.png)
 
