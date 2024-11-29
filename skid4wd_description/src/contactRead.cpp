@@ -23,11 +23,6 @@ static geometry_msgs::Wrench wheel_front_right_wrench;
 
 // Callback function for contact messages
 void forcesCb(ConstContactsPtr &_msg){
-    // Check if the message contains no contacts or if the message is invalid
-    if (_msg->contact_size() == 0) {
-        ROS_WARN("No contact information available.");
-        return;  // Early return if there are no contacts
-    }
 
     // Collision names corresponding to each wheel
     std::string wheel_rear_left_string   = "skid4wd::wheel_rear_left_1::wheel_rear_left_1_collision";
@@ -38,7 +33,6 @@ void forcesCb(ConstContactsPtr &_msg){
     // Iterate over all contacts in the message
     for (int i = 0; i < _msg->contact_size(); ++i) {
 
-        ROS_INFO("%s", _msg->contact(i).collision1().c_str());
         // Check if the contact is related to the rear left wheel
         if(_msg->contact(i).collision1() == wheel_rear_left_string){
             wheel_rear_left_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
@@ -100,10 +94,10 @@ int main(int _argc, char **_argv){
 
     // Initialize ROS node handle and publishers
     ros::NodeHandle n;
-    pub_wheel_rear_left_wrench   = n.advertise<geometry_msgs::Wrench>("wheel_rear_left_wrench", 1000);
-    pub_wheel_rear_right_wrench  = n.advertise<geometry_msgs::Wrench>("wheel_rear_right_wrench", 1000);
-    pub_wheel_front_left_wrench  = n.advertise<geometry_msgs::Wrench>("wheel_front_left_wrench", 1000);
-    pub_wheel_front_right_wrench = n.advertise<geometry_msgs::Wrench>("wheel_front_right_wrench", 1000);
+    pub_wheel_rear_left_wrench   = n.advertise<geometry_msgs::Wrench>("/ninebot/wheel_rear_left_wrench", 1000);
+    pub_wheel_rear_right_wrench  = n.advertise<geometry_msgs::Wrench>("/ninebot/wheel_rear_right_wrench", 1000);
+    pub_wheel_front_left_wrench  = n.advertise<geometry_msgs::Wrench>("/ninebot/wheel_front_left_wrench", 1000);
+    pub_wheel_front_right_wrench = n.advertise<geometry_msgs::Wrench>("/ninebot/wheel_front_right_wrench", 1000);
 
     // Main loop: continuously check and publish forces and torques
     while (ros::ok())

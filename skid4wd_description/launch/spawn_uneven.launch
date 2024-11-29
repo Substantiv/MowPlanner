@@ -30,4 +30,6 @@
     <!-- Create TF transforms from /map to /base_link -->
     <node name="map2baselink" pkg="skid4wd_description" type="odom_process.py" output="screen"/>
 
+    <node name="contact_read_node" pkg="skid4wd_description" type="contact_read_node" output="screen"/>
+
 </launch>
