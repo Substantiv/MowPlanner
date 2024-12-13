@@ -165,13 +165,13 @@ namespace uneven_planner
     static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::VectorXd& grad);
     static int earlyExit(void* ptrObj, const Eigen::VectorXd& x, const Eigen::VectorXd& grad, 
                          const double fx, const double step, int k, int ls);
-    int ALMTrajOpt::optimizeSE2Traj(const Eigen::MatrixXd &initStateXY,   // 初始位置 (x, y)
-                                    const Eigen::MatrixXd &endStateXY,    // 终止位置 (x, y)
-                                    const Eigen::MatrixXd &innerPtsXY,    // 中间点 (x, y)
-                                    const Eigen::VectorXd &initYaw,       // 初始航向角
-                                    const Eigen::VectorXd &endYaw,        // 终止航向角
-                                    const Eigen::VectorXd &innerPtsYaw,   // 中间航向角
-                                    const double &totalTime               // 轨迹总时间       
+    int ALMTrajOpt::optimizeSE2Traj(const Eigen::MatrixXd &initStateXY,
+                                    const Eigen::MatrixXd &endStateXY, 
+                                    const Eigen::MatrixXd &innerPtsXY,
+                                    const Eigen::VectorXd &initYaw,
+                                    const Eigen::VectorXd &endYaw,
+                                    const Eigen::VectorXd &innerPtsYaw,
+                                    const double &totalTime
                                     )
     {
         // 优化器计算状态：0为成功优化、1为优化器失败(如未收敛)、2为超过最大迭代次数

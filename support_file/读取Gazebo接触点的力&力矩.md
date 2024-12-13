@@ -1,8 +1,8 @@
 # 【Gazebo】读取接触点处的力&力矩
 
-最近有在Gazebo仿真器中读取车轮和地面接触点力和力矩的需求，调研了一下普遍方案是使用力/力矩传感器和接触传感器，但是在配置urdf文件时候一直没配置成功。最后选择直接在gazebo发布的topic进行读取。
+在Gazebo仿真器中读取车轮和地面接触点力和力矩，可采用是使用力/力矩传感器和接触传感器，但是在配置urdf文件时候一直没配置成功。最后选择直接在gazebo发布的topic进行读取， 然后使用ROS topic将接触点力和力矩发布出去。
 
-Gazebo 本身是一个物理引擎和仿真环境，它并没有原生支持 ROS 的通信机制。为了使 Gazebo 能够与 ROS 进行互动，Gazebo 使用一个称为 gazebo_ros_pkgs 的 ROS 包（即 gazebo_ros 插件）来实现与 ROS 通信。这些插件帮助 Gazebo 发布传感器数据到 ROS topic，或者从 ROS topic 接收命令。Gazebo 提供了与 ROS 集成的插件，这些插件会自动将 Gazebo 仿真中的数据通过 ROS topic 发布，或者接收来自 ROS topic 的指令，这些插件就是对应的传感器插件。
+**Gazebo topic和 ROS topic之间关系**： Gazebo 本身是一个物理引擎和仿真环境，它并没有原生支持 ROS 的通信机制。为了使 Gazebo 能够与 ROS 进行互动，Gazebo 使用一个称为 gazebo_ros_pkgs 的 ROS 包（即 gazebo_ros 插件）来实现与 ROS 通信。这些插件帮助 Gazebo 发布传感器数据到 ROS topic，或者从 ROS topic 接收命令。Gazebo 提供了与 ROS 集成的插件，这些插件会自动将 Gazebo 仿真中的数据通过 ROS topic 发布，或者接收来自 ROS topic 的指令，这些插件就是对应的传感器插件。
 
 如果不通过传感器插件，直接从 Gazebo 中读取数据也是可行的，因为在配置力/力矩传感器和接触传感器没有成功，所以就介绍一下直接才能够Gazebo中读取对应的接触数据。
 
@@ -93,3 +93,5 @@ void forcesCb(ConstContactsPtr &_msg){
 ```depth()```接触深度表示物体之间的重叠程度，它是一个标量值，指示两个物体是否发生了碰撞。如果深度值为正，则表示物体正在发生重叠。
 
 ![](./figure/contacts_topic_result.png)
+
+![](./figure/WheelForce.png)
