@@ -1,0 +1,273 @@
+<?xml version="1.0" ?>
+<robot name="willand" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:include filename="$(find willand_description)/urdf/materials.xacro" />
+<xacro:include filename="$(find willand_description)/urdf/willand.trans" />
+<xacro:include filename="$(find willand_description)/urdf/willand.gazebo" />
+<xacro:include filename="$(find realsense_ros_gazebo)/xacro/tracker.xacro"/>
+<xacro:include filename="$(find realsense_ros_gazebo)/xacro/depthcam.xacro"/>
+
+<xacro:property name="PI" value="3.14"/>
+
+<!-- Base link definition -->
+<link name="base_link">
+  <inertial>
+    <origin rpy="0 0 0" xyz="-0.010646286022740195 -4.919653835224294e-16 0.07524542881356616"/>
+    <mass value="47.91821428809842"/>
+    <inertia ixx="0.350848" ixy="0.0" ixz="0.027353" iyy="1.008832" iyz="-0.0" izz="1.186927"/>
+  </inertial>
+  <visual>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+    <material name="orange"/>
+  </visual>
+  <collision>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- IMU link definition -->
+<link name="imu_link">
+  <inertial>
+    <origin rpy="0 0 0.02" xyz="0 0 0"/>
+    <mass value="0.1"/>
+    <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+  </inertial>
+  <visual>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <geometry>
+      <cylinder length="0.01" radius="0.02"/>
+    </geometry>
+    <material name="white">
+      <color rgba="1 1 1 1"/>  <!-- 直接定义颜色 -->
+    </material>
+  </visual>
+  <collision>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <geometry>
+      <cylinder length="0.01" radius="0.02"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- IMU Joint definition -->
+<joint name="imu_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="imu_link"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+</joint>
+
+<!-- IMU plugin for 'body_link' -->
+<gazebo reference="imu_link">
+  <gravity>true</gravity>
+  <sensor name="imu_sensor" type="imu">
+    <always_on>true</always_on>
+    <update_rate>100</update_rate>
+    <visualize>true</visualize>
+    <topic>imu/data</topic> <!-- Specify a unique topic name -->
+    <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+      <topicName>imu/data</topicName> <!-- Use the same topic name as above -->
+      <bodyName>body_link</bodyName>
+      <updateRateHZ>100.0</updateRateHZ>
+      <gaussianNoise>0.0</gaussianNoise>
+      <xyzOffset>0 0 0</xyzOffset>
+      <rpyOffset>0 0 0</rpyOffset>
+      <frameName>imu_link</frameName>
+    </plugin>
+    <pose>0 0 0 0 0 0</pose> <!-- Position relative to imu_link -->
+  </sensor>
+</gazebo>
+
+<xacro:realsense_d435 sensor_name="d435" parent_link="base_link" rate="10">
+<origin rpy="0 0 0 " xyz="0.27 0 0.09"/>
+</xacro:realsense_d435>
+
+<!-- LiDAR link definition -->
+<link name="lidar_link">
+  <inertial>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <mass value="0.5"/> <!-- 假设的质量，可以根据实际情况调整 -->
+    <inertia ixx="0.002" ixy="0.0" ixz="0.0" iyy="0.002" iyz="0.0" izz="0.002"/>
+  </inertial>
+  <visual> 
+    <origin xyz="0 0 -0.03" rpy="1.57 0 3.14"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/livox-mid360.dae">
+      </mesh>
+    </geometry>
+  </visual>
+  <collision>
+    <origin rpy="0 0 -0.03" xyz="0 0 3.14"/>
+    <geometry>
+      <box size="0.1 0.1 0.15"/>
+    </geometry>
+  </collision>
+</link>
+
+<!-- LiDAR Joint definition -->
+<joint name="lidar_joint" type="fixed">
+  <parent link="base_link"/>
+  <child link="lidar_link"/>
+  <origin xyz="0 0 0.2" rpy="0 0 0"/> <!-- 设置LiDAR的位置，您可以根据需要调整高度 -->
+</joint>
+
+<!-- LiDAR plugin configuration -->
+<gazebo reference="lidar_link">
+  <sensor type="ray" name="lidar_sensor">
+    <pose>0 0 0 0 0 0</pose>
+    <visualize>false</visualize>
+    <update_rate>10</update_rate>
+    <ray>
+      <scan>
+        <horizontal>
+          <samples>360</samples>
+          <resolution>1</resolution>
+          <min_angle>-1.57</min_angle>
+          <max_angle>1.57</max_angle>
+        </horizontal>
+        <vertical>
+          <samples>30</samples>
+          <resolution>1</resolution>
+          <min_angle>-0.3</min_angle>
+          <max_angle>0.3</max_angle>
+        </vertical>
+      </scan>
+      <range>
+        <min>0.1</min>
+        <max>100</max>
+        <resolution>0.01</resolution>
+      </range>
+    </ray>
+    <plugin name="gazebo_ros_lidar" filename="libgazebo_ros_laser.so">
+      <topicName>/willand/livox/lidar/scan</topicName> <!-- 发布的激光雷达话题 -->
+      <frameName>lidar_link</frameName>
+    </plugin>
+  </sensor>
+</gazebo>
+
+<link name="wheel_front_left_1">
+  <inertial>
+    <origin rpy="0 0 0" xyz="2.3943220794908626e-08 -0.009939147977344326 -1.8492763799449197e-08"/>
+    <mass value="0.552895033700559"/>
+    <inertia ixx="0.001246" ixy="0.0" ixz="0.0" iyy="0.002096" iyz="0.0" izz="0.001246"/>
+  </inertial>
+  <visual>
+    <origin rpy="0 0 0" xyz="-0.01 0.005 -0.017"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/wheel.dae"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin rpy="${PI/2} 0 0" xyz="0 0 0"/>
+    <geometry>
+      <cylinder length="0.07" radius="0.08"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="wheel_front_right_1">
+  <inertial>
+    <origin rpy="0 0 0" xyz="1.796076479210207e-08 0.009939147977344354 1.3632938049290555e-08"/>
+    <mass value="0.5528950337005641"/>
+    <inertia ixx="0.001246" ixy="-0.0" ixz="0.0" iyy="0.002096" iyz="-0.0" izz="0.001246"/>
+  </inertial>
+  <visual>
+    <origin rpy="0 0 ${PI}" xyz="0.01 -0.005 -0.017"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/wheel.dae"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin rpy="${PI/2} 0 0" xyz="0 0 0"/>
+    <geometry>
+      <cylinder length="0.07" radius="0.08"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="wheel_rear_left_1">
+  <inertial>
+    <origin rpy="0 0 0" xyz="2.481888500271978e-08 -0.009939147977344326 -1.6256707337930498e-08"/>
+    <mass value="0.552895033700561"/>
+    <inertia ixx="0.001246" ixy="0.0" ixz="-0.0" iyy="0.002096" iyz="-0.0" izz="0.001246"/>
+  </inertial>
+  <visual>
+    <origin rpy="0 0 0" xyz="-0.01 0.005 -0.017"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/wheel.dae"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin rpy="${PI/2} 0 0" xyz="0 0 0"/>
+    <geometry>
+      <cylinder length="0.07" radius="0.08"/>
+    </geometry>
+  </collision>
+</link>
+
+<link name="wheel_rear_right_1">
+  <inertial>
+    <origin rpy="0 0 0" xyz="2.1544820399954645e-08 0.00993914797734427 1.3912224119255745e-08"/>
+    <mass value="0.5528950337005801"/>
+    <inertia ixx="0.001246" ixy="-0.0" ixz="0.0" iyy="0.002096" iyz="-0.0" izz="0.001246"/>
+  </inertial>
+  <visual>
+    <origin rpy="0 0 ${PI}" xyz="0.01 -0.005 -0.017"/>
+    <geometry>
+      <mesh filename="package://willand_description/meshes/wheel.dae"/>
+    </geometry>
+    <material name="silver"/>
+  </visual>
+  <collision>
+    <origin rpy="${PI/2} 0 0" xyz="0 0 0"/>
+    <geometry>
+      <cylinder length="0.07" radius="0.08"/>
+    </geometry>
+  </collision>
+</link>
+
+<joint name="joint_front_left" type="continuous">
+  <origin rpy="0 0 0" xyz="0.125 0.16 0.03"/>
+  <parent link="base_link"/>
+  <child link="wheel_front_left_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="10000" velocity="1000"/>
+  <joint_properties damping="1.0" friction="1.0"/>
+</joint>
+
+<joint name="joint_front_right" type="continuous">
+  <origin rpy="0 0 0" xyz="0.125 -0.16 0.03"/>
+  <parent link="base_link"/>
+  <child link="wheel_front_right_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="10000" velocity="1000"/>
+  <joint_properties damping="1.0" friction="1.0"/>
+</joint>
+
+<joint name="joint_rear_left" type="continuous">
+  <origin rpy="0 0 0" xyz="-0.125 0.16 0.03"/>
+  <parent link="base_link"/>
+  <child link="wheel_rear_left_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="10000" velocity="1000"/>
+  <joint_properties damping="1.0" friction="1.0"/>
+</joint>
+
+<joint name="joint_rear_right" type="continuous">
+  <origin rpy="0 0 0" xyz="-0.125 -0.16 0.03"/>
+  <parent link="base_link"/>
+  <child link="wheel_rear_right_1"/>
+  <axis xyz="0.0 1.0 0.0"/>
+  <limit effort="10000" velocity="1000"/>
+  <joint_properties damping="1.0" friction="1.0"/>
+</joint>
+
+</robot>

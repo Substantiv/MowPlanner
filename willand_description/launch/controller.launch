@@ -1,0 +1,16 @@
+<launch>
+    <rosparam file="$(find willand_description)/config/controller.yaml" command="load"/>
+
+    <group ns="/willand">
+        <!-- Start controller_manager, e.g.joint_state_controller and drive_controller -->
+        <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+        output="screen" ns="/willand" args="joint_state_controller drive_controller --shutdown-timeout 3"/>
+
+        <!-- convert joint states to TF transforms for rviz -->
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
+        respawn="false" output="screen">
+            <remap from="/joint_states" to="/willand/joint_states" />
+        </node>
+
+    </group>
+</launch>
