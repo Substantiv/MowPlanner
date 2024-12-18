@@ -13,15 +13,24 @@ find_package(catkin REQUIRED COMPONENTS
   uneven_map
   front_end
   back_end
-  mpc_controller
 )
 
 find_package(Eigen3 REQUIRED)
+
+add_message_files(FILES
+  SE2Traj.msg
+)
+
+generate_messages(DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
 
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES plan_manager
  CATKIN_DEPENDS roscpp std_msgs uneven_map visualization_msgs front_end back_end mpc_controller
+ message_runtime
 )
 
 include_directories( 

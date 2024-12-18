@@ -21,7 +21,7 @@ namespace uneven_planner
         traj_opt.setFrontend(kino_astar);
         traj_opt.setEnvironment(uneven_map);
 
-        traj_pub = nh.advertise<mpc_controller::SE2Traj>("traj", 1);
+        traj_pub = nh.advertise<plan_manager::SE2Traj>("traj", 1);
         odom_sub = nh.subscribe<nav_msgs::Odometry>("odom", 1, &PlanManager::rcvOdomCallBack, this);
         target_sub = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &PlanManager::rcvWpsCallBack, this);
         
@@ -154,7 +154,7 @@ namespace uneven_planner
         std::cout << "max sigma:   "<< max_terrain_value[5] << std::endl;
 
         // publish to mpc controller
-        mpc_controller::SE2Traj traj_msg;
+        plan_manager::SE2Traj traj_msg;
         traj_msg.start_time = ros::Time::now();
         traj_msg.init_v.x = 0.0;
         traj_msg.init_v.y = 0.0;

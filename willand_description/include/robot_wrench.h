@@ -9,13 +9,16 @@ private:
     double x, y;        // Coordinates of the center of gravity relative to the rear wheels
     double d, L;        // Wheelbase, vehicle length
     double a_x, a_y, a_l, a_r; // Accelerations
-    double N_f, N_r, N_rl, N_rr; // Normal forces
-    double yaw, roll, pitch;     // Euler angles
     double m, m_r, m_rr, m_rl, g; // Mass, gravity parameters
 
     ros::Subscriber imu_sub;
 
 public:
+    double yaw, pitch, roll;     // Euler angles
+    double Nf_car, Nr_car, Nrl_car, Nrr_car; // Normal forces
+    double F_dl, F_fl, F_l, N_l; // driving and friction forces of left rear wheel
+    double F_dr, F_fr, F_r, N_r; // driving and friction forces of right rear wheel
+
     void computeWrench(); // Compute the forces and moments
     void init(ros::NodeHandle& nh); // Initialize the class
     void imuCallback(const sensor_msgs::Imu::ConstPtr& msg); // Callback to process IMU data
@@ -37,25 +40,25 @@ void RobotWrench::init(ros::NodeHandle& nh)
 void RobotWrench::computeWrench()
 {
     /* Compute normal forces */
-    N_f = (m * g * x * cos(alpha) - m * g * y * sin(alpha) - m * y * a_y) / L;
-    N_r = m * g * cos(alpha) - N_f;
-    m_r = N_r / (N_f + N_r);
+    Nf_car = (m * g * x * cos(alpha) - m * g * y * sin(alpha) - m * y * a_y) / L;
+    Nr_car = m * g * cos(alpha) - Nf_car;
+    m_r = Nr_car / (Nf_car + Nr_car);
 
-    N_rl = 0.5 * m_r * g * cos(roll) - y / d * m_r * g * sin(roll) + m_r * a_y * y;
-    N_rr = N_r - N_rl;
-    m_rl = N_rl / (N_f + N_r);
-    m_rr = N_rr / (N_f + N_r);
+    Nrl_car = 0.5 * m_r * g * cos(roll) - y / d * m_r * g * sin(roll) + m_r * a_y * y;
+    Nrr_car = Nr_car - Nrl_car;
+    m_rl = Nrl_car / (Nf_car + Nr_car);
+    m_rr = Nrr_car / (Nf_car + Nr_car);
 
     /* Compute driving and friction forces */
-    double F_dl = m_rl * g * sin(pitch) + m_rl * a_l;
-    double F_fl = m_rl * g * sin(alpha) + m_rl * a_l * cos(yaw);
-    double F_l = sqrt(F_dl * F_dl + F_fl * F_fl + 2 * F_dl * F_fl * cos(yaw));
-    double N_l = m_rl * g * cos(alpha);
+    F_dl = m_rl * g * sin(pitch) + m_rl * a_l;
+    F_fl = m_rl * g * sin(alpha) + m_rl * a_l * cos(yaw);
+    F_l = sqrt(F_dl * F_dl + F_fl * F_fl + 2 * F_dl * F_fl * cos(yaw));
+    N_l = m_rl * g * cos(alpha);
 
-    double F_dr = m_rr * g * sin(pitch) + m_rr * a_r;
-    double F_fr = m_rr * g * sin(alpha) + m_rr * a_r * cos(yaw);
-    double F_r = sqrt(F_dr * F_dr + F_fr * F_fr + 2 * F_dr * F_fr * cos(yaw));
-    double N_r = m_rr * g * cos(alpha);
+    F_dr = m_rr * g * sin(pitch) + m_rr * a_r;
+    F_fr = m_rr * g * sin(alpha) + m_rr * a_r * cos(yaw);
+    F_r = sqrt(F_dr * F_dr + F_fr * F_fr + 2 * F_dr * F_fr * cos(yaw));
+    N_r = m_rr * g * cos(alpha);
 }
 
 void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
