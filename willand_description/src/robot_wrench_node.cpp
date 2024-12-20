@@ -15,7 +15,7 @@ int main(int _argc, char **_argv){
     RobotWrench willand_robot;
     willand_robot.init(n, node);
 
-    // Main loo
+    // Main loop
     while (ros::ok())
     {
         gazebo::common::Time::MSleep(20);  // Sleep for 20 ms to reduce CPU usage

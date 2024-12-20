@@ -20,9 +20,17 @@ include_directories(
 
 catkin_package()
 
+add_library(robot_wrench src/robot_wrench.cpp)
+
+target_link_libraries(robot_wrench
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
+)
+
 add_executable(robot_wrench_node src/robot_wrench_node.cpp)
 
 target_link_libraries(robot_wrench_node
+  robot_wrench
   ${catkin_LIBRARIES}
   ${GAZEBO_LIBRARIES}
 )
