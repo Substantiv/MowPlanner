@@ -1,6 +1,20 @@
+#include <cmath>
+#include <vector>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <Eigen/Dense>
+
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
-#include <cmath>
+#include <std_msgs/Float64.h>
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Wrench.h>
+#include <geometry_msgs/Vector3.h>
+#include <gazebo/msgs/msgs.hh>
+#include <gazebo/gazebo_config.h>
+#include <gazebo/gazebo_client.hh>
+#include <gazebo/transport/transport.hh>
 
 class RobotWrench
 {
@@ -12,53 +26,50 @@ private:
     double m, m_r, m_rr, m_rl, g; // Mass, gravity parameters
 
     ros::Subscriber imu_sub;
+    gazebo::transport::SubscriberPtr sub;
+
+    // Collision names corresponding to each wheel
+    std::string wheel_front_right_string = "willand::wheel_1::wheel_1_collision";
+    std::string wheel_rear_right_string  = "willand::wheel_2::wheel_2_collision";
+    std::string wheel_front_left_string  = "willand::wheel_3::wheel_3_collision";
+    std::string wheel_rear_left_string   = "willand::wheel_4::wheel_4_collision";
 
 public:
     double yaw, pitch, roll;     // Euler angles
     double Nf_car, Nr_car, Nrl_car, Nrr_car; // Normal forces
     double F_dl, F_fl, F_l, N_l; // driving and friction forces of left rear wheel
     double F_dr, F_fr, F_r, N_r; // driving and friction forces of right rear wheel
+    double mu_sim_l, mu_sim_r;
+    double mu_model_l, mu_model_r;
+
+    geometry_msgs::Wrench wheel_rear_left_wrench;
+    geometry_msgs::Wrench wheel_rear_right_wrench;
+    geometry_msgs::Wrench wheel_front_left_wrench;
+    geometry_msgs::Wrench wheel_front_right_wrench;
+
+    geometry_msgs::Vector3 rl_force_wheel, rr_force_wheel;
 
     void computeWrench(); // Compute the forces and moments
-    void init(ros::NodeHandle& nh); // Initialize the class
+    void wrenchCompare();
+    void init(ros::NodeHandle& nh, gazebo::transport::NodePtr node); // Initialize the class
     void imuCallback(const sensor_msgs::Imu::ConstPtr& msg); // Callback to process IMU data
+    void wrenchCb(ConstContactsPtr &_msg);
+
+    geometry_msgs::Vector3 transformForceToVehicleFrame(const geometry_msgs::Vector3 &force_world);
 };
 
-void RobotWrench::init(ros::NodeHandle& nh)
+void RobotWrench::init(ros::NodeHandle& nh, gazebo::transport::NodePtr node)
 {
-    m = 25;          // Vehicle mass
+    m = 69;           // Vehicle mass
     g = 9.81;         // Gravitational acceleration
-    alpha = 10 * M_PI / 180.0; // Convert angle from degrees to radians
-    L = 0.8;          // Vehicle length
-    x = 0.3 * L;      // Distance of the center of gravity from the rear axle
-    y = 0.2;          // Distance of the center of gravity from the lateral centerline
-    d = 0.6;          // Distance between the left and right wheels
+    alpha = 0.2;      // Convert angle from degrees to radians
+    L = 0.5;          // Vehicle length
+    x = 0.5 * L;      // Distance of the center of gravity from the rear axle
+    y = 0.1;          // Distance of the center of gravity from the lateral centerline
+    d = 0.3;          // Distance between the left and right wheels
 
     imu_sub = nh.subscribe<sensor_msgs::Imu>("/willand/imu/data", 10, &RobotWrench::imuCallback, this);
-}
-
-void RobotWrench::computeWrench()
-{
-    /* Compute normal forces */
-    Nf_car = (m * g * x * cos(alpha) - m * g * y * sin(alpha) - m * y * a_y) / L;
-    Nr_car = m * g * cos(alpha) - Nf_car;
-    m_r = Nr_car / (Nf_car + Nr_car);
-
-    Nrl_car = 0.5 * m_r * g * cos(roll) - y / d * m_r * g * sin(roll) + m_r * a_y * y;
-    Nrr_car = Nr_car - Nrl_car;
-    m_rl = Nrl_car / (Nf_car + Nr_car);
-    m_rr = Nrr_car / (Nf_car + Nr_car);
-
-    /* Compute driving and friction forces */
-    F_dl = m_rl * g * sin(pitch) + m_rl * a_l;
-    F_fl = m_rl * g * sin(alpha) + m_rl * a_l * cos(yaw);
-    F_l = sqrt(F_dl * F_dl + F_fl * F_fl + 2 * F_dl * F_fl * cos(yaw));
-    N_l = m_rl * g * cos(alpha);
-
-    F_dr = m_rr * g * sin(pitch) + m_rr * a_r;
-    F_fr = m_rr * g * sin(alpha) + m_rr * a_r * cos(yaw);
-    F_r = sqrt(F_dr * F_dr + F_fr * F_fr + 2 * F_dr * F_fr * cos(yaw));
-    N_r = m_rr * g * cos(alpha);
+    sub = node->Subscribe("/gazebo/default/physics/contacts", &RobotWrench::wrenchCb, this);
 }
 
 void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -76,6 +87,9 @@ void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 
     // Compute yaw angle
     yaw = atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz));
+
+    // TODO:角度还需要进一步处理 
+    yaw = yaw - 1.57;
 
     a_x = msg->linear_acceleration.x; // Linear acceleration in the x-direction
     a_y = msg->linear_acceleration.y; // Linear acceleration in the y-direction
@@ -104,4 +118,131 @@ void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
     // Compute left and right wheel accelerations
     a_l = a_x - (angular_acceleration * d / 2.0); // Left wheel acceleration
     a_r = a_x + (angular_acceleration * d / 2.0); // Right wheel acceleration
+}
+
+// Callback function for contact messages
+void RobotWrench::wrenchCb(ConstContactsPtr &_msg){
+
+    // Iterate over all contacts in the message
+    for (int i = 0; i < _msg->contact_size(); ++i) {
+
+        // Check if the contact is related to the rear left wheel
+        if(_msg->contact(i).collision1() == wheel_rear_left_string){
+            wheel_rear_left_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
+            wheel_rear_left_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
+            wheel_rear_left_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
+            wheel_rear_left_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
+            wheel_rear_left_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
+            wheel_rear_left_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+        }
+
+        // Check if the contact is related to the rear right wheel
+        if(_msg->contact(i).collision1() == wheel_rear_right_string){
+           
+            wheel_rear_right_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
+            wheel_rear_right_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
+            wheel_rear_right_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
+            wheel_rear_right_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
+            wheel_rear_right_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
+            wheel_rear_right_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+        }
+
+        // Check if the contact is related to the front left wheel
+        if(_msg->contact(i).collision1() == wheel_front_left_string){
+            wheel_front_left_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
+            wheel_front_left_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
+            wheel_front_left_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
+            wheel_front_left_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
+            wheel_front_left_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
+            wheel_front_left_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+        }
+
+        // Check if the contact is related to the front right wheel
+        if(_msg->contact(i).collision1() == wheel_front_right_string){
+            wheel_front_right_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
+            wheel_front_right_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
+            wheel_front_right_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
+            wheel_front_right_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
+            wheel_front_right_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
+            wheel_front_right_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+        }
+    }
+
+    wrenchCompare();
+}
+
+void RobotWrench::wrenchCompare(){
+
+    computeWrench();
+
+    rl_force_wheel = transformForceToVehicleFrame(wheel_rear_left_wrench.force);
+    rr_force_wheel = transformForceToVehicleFrame(wheel_rear_right_wrench.force);
+
+    mu_sim_l = sqrt(std::pow(rl_force_wheel.x,2) + std::pow(rl_force_wheel.y,2)) / rl_force_wheel.z;
+    mu_sim_r = sqrt(std::pow(rr_force_wheel.x,2) + std::pow(rr_force_wheel.y,2)) / rr_force_wheel.z;
+    mu_model_l = F_l / N_l;
+    mu_model_r = F_r / N_r;
+}
+
+void RobotWrench::computeWrench()
+{
+    /* Compute normal forces */
+    Nf_car = (m * g * x * cos(pitch) - m * g * y * sin(pitch) - m * y * a_y) / L;
+    Nr_car = m * g * cos(pitch) - Nf_car;
+    m_r = Nr_car / (Nf_car + Nr_car);
+
+    Nrl_car = 0.5 * m_r * g * cos(roll) - y / d * m_r * g * sin(roll) + m_r * a_y * y / d;
+    Nrr_car = Nr_car - Nrl_car;
+    m_rl = Nrl_car / (Nf_car + Nr_car);
+    m_rr = Nrr_car / (Nf_car + Nr_car);
+
+    /* Compute driving and friction forces */
+    F_dl = m_rl * g * sin(pitch) + m_rl * a_l;
+    F_fl = m_rl * g * sin(alpha) + m_rl * a_l * cos(yaw);
+    F_l = sqrt(F_dl * F_dl + F_fl * F_fl + 2 * F_dl * F_fl * cos(yaw));
+    N_l = m_rl * g * cos(alpha);
+
+    F_dr = m_rr * g * sin(pitch) + m_rr * a_r;
+    F_fr = m_rr * g * sin(alpha) + m_rr * a_r * cos(yaw);
+    F_r = sqrt(F_dr * F_dr + F_fr * F_fr + 2 * F_dr * F_fr * cos(yaw));
+    N_r = m_rr * g * cos(alpha);
+}
+
+geometry_msgs::Vector3 RobotWrench::transformForceToVehicleFrame(
+    const geometry_msgs::Vector3 &force_world) {
+
+    // Create rotation matrices
+    Eigen::Matrix3d Rz, Ry, Rx, R;
+
+    // Yaw rotation (around Z axis)
+    Rz << cos(yaw), -sin(yaw), 0,
+          sin(yaw),  cos(yaw), 0,
+          0,         0,        1;
+
+    // Pitch rotation (around Y axis)
+    Ry << cos(pitch), 0, sin(pitch),
+          0,          1, 0,
+         -sin(pitch), 0, cos(pitch);
+
+    // Roll rotation (around X axis)
+    Rx << 1, 0,         0,
+          0, cos(roll), -sin(roll),
+          0, sin(roll), cos(roll);
+
+    // Combined rotation matrix
+    R = Rz * Ry * Rx;
+
+    // Force in world frame
+    Eigen::Vector3d force_world_vec(force_world.x, force_world.y, force_world.z);
+
+    // Transform to vehicle frame
+    Eigen::Vector3d force_vehicle_vec = R * force_world_vec;
+
+    // Convert back to geometry_msgs::Vector3
+    geometry_msgs::Vector3 force_vehicle;
+    force_vehicle.x = force_vehicle_vec(0);
+    force_vehicle.y = force_vehicle_vec(1);
+    force_vehicle.z = force_vehicle_vec(2);
+
+    return force_vehicle;
 }

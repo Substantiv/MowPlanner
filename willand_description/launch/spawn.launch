@@ -9,7 +9,7 @@
 
     <group ns="willand">
         <!-- 机器人描述的参数 -->
-        <param name="robot_description" command="xacro $(find willand_description)/urdf/willand.xacro"/>
+        <param name="robot_description" command="xacro $(find willand_description)/urdf/carmodel2.urdf.xacro"/>
 
         <!-- Spawn 模型到 Gazebo -->
         <node name="ski4wd_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
