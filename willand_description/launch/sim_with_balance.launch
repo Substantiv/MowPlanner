@@ -5,8 +5,11 @@
     <arg name="roll" default="0"/>
     <arg name="pitch" default="0"/>
     <arg name="yaw" default="1.5708"/> 
+    <!-- Load World -->
+    <!-- simple slope -->
     <arg name="world_name" default="$(find willand_description)/worlds/slope_world_20deg.world"/>
-    <param name="robot_description" command="xacro $(find willand_description)/urdf/willand_carmodel.xacro"/>
+    <!-- complex lawn -->
+    <!-- <arg name="world_name" default="$(find willand_description)/worlds/lawn_world.world"/> -->
 
     <!-- Launch Gazebo -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -15,8 +18,11 @@
     </include>
 
     <!-- Spawn URDF Model -->
-    <node name="willand_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
-            args="-urdf -param robot_description -model willand -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)"/>
+    <group ns="willand">
+        <param name="robot_description" command="xacro $(find willand_description)/urdf/carmodel2.urdf.xacro"/>
+        <node name="ski4wd_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
+              args="-urdf -param robot_description -model willand -x $(arg x) -y $(arg y) -z $(arg z) -R $(arg roll) -P $(arg pitch) -Y $(arg yaw)"/>
+    </group>
 
     <!-- Spawn Controllers -->
     <include file="$(find willand_description)/launch/controller.launch"/>
@@ -25,7 +31,7 @@
     <node name="map2baselink" pkg="willand_description" type="odom_process.py" output="screen"/>
 
     <!-- Launch Rviz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find willand_description)/config/willand_orabmap_rviz.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find willand_description)/config/willand_balance_rviz.rviz" />
 
     <!-- publish joint state-->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
@@ -33,7 +39,7 @@
      <!-- Convert joint states to TF transforms for rviz -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
         <param name="publish_frequency" type="double" value="50.0" />
-        <!-- <remap from="/joint_states" to="/willand/joint_states" /> -->
+        <remap from="/joint_states" to="/willand/joint_states" />
     </node>
 
 </launch>

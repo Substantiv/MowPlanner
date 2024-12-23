@@ -11,10 +11,12 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Wrench.h>
 #include <geometry_msgs/Vector3.h>
+#include <visualization_msgs/Marker.h>
 #include <gazebo/msgs/msgs.hh>
 #include <gazebo/gazebo_config.h>
 #include <gazebo/gazebo_client.hh>
 #include <gazebo/transport/transport.hh>
+
 
 class RobotWrench
 {
@@ -29,10 +31,34 @@ private:
     gazebo::transport::SubscriberPtr sub;
 
     // Collision names corresponding to each wheel
-    std::string wheel_front_right_string = "willand::wheel_1::wheel_1_collision";
-    std::string wheel_rear_right_string  = "willand::wheel_2::wheel_2_collision";
-    std::string wheel_front_left_string  = "willand::wheel_3::wheel_3_collision";
-    std::string wheel_rear_left_string   = "willand::wheel_4::wheel_4_collision";
+    // std::string wheel_front_right_string = "willand::wheel_1::wheel_1_collision";
+    // std::string wheel_rear_right_string  = "willand::wheel_2::wheel_2_collision";
+    // std::string wheel_front_left_string  = "willand::wheel_3::wheel_3_collision";
+    // std::string wheel_rear_left_string   = "willand::wheel_4::wheel_4_collision";
+    std::string wheel_front_right_string = "willand::wheel_front_right_1::wheel_front_right_1_collision";
+    std::string wheel_rear_right_string  = "willand::wheel_rear_right_1::wheel_rear_right_1_collision";
+    std::string wheel_front_left_string  = "willand::wheel_front_left_1::wheel_front_left_1_collision";
+    std::string wheel_rear_left_string   = "willand::wheel_rear_left_1::wheel_rear_left_1_collision";
+
+    visualization_msgs::Marker marker;
+
+    ros::Publisher pub_F_l_;
+    ros::Publisher pub_N_l_;
+    ros::Publisher pub_F_r_;
+    ros::Publisher pub_N_r_;
+
+    ros::Publisher rear_left_marker_pub;
+    ros::Publisher rear_right_marker_pub;
+    ros::Publisher front_left_marker_pub;
+    ros::Publisher front_right_marker_pub;
+
+    // Publish the forces and normal forces
+    std_msgs::Float64 msg_F_l, msg_N_l, msg_F_r, msg_N_r;
+
+    geometry_msgs::Point wheel_rear_left_position;
+    geometry_msgs::Point wheel_rear_right_position;
+    geometry_msgs::Point wheel_front_left_position;
+    geometry_msgs::Point wheel_front_right_position;
 
 public:
     double yaw, pitch, roll;     // Euler angles
@@ -56,5 +82,7 @@ public:
     void wrenchCb(ConstContactsPtr &_msg);
 
     geometry_msgs::Vector3 transformForceToVehicleFrame(const geometry_msgs::Vector3 &force_world);
+    visualization_msgs::Marker createArrowMarker(int id, const std::string& frame_id, const geometry_msgs::Vector3& force, const geometry_msgs::Point& position);
+
 };
 

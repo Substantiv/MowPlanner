@@ -12,6 +12,16 @@ void RobotWrench::init(ros::NodeHandle& nh, gazebo::transport::NodePtr node)
 
     imu_sub = nh.subscribe<sensor_msgs::Imu>("/willand/imu/data", 10, &RobotWrench::imuCallback, this);
     sub = node->Subscribe("/gazebo/default/physics/contacts", &RobotWrench::wrenchCb, this);
+
+    pub_F_l_ = nh.advertise<std_msgs::Float64>("model/F_l", 10);
+    pub_N_l_ = nh.advertise<std_msgs::Float64>("model/N_l", 10);
+    pub_F_r_ = nh.advertise<std_msgs::Float64>("model/F_r", 10);
+    pub_N_r_ = nh.advertise<std_msgs::Float64>("model/N_r", 10);
+
+    rear_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_left_force_marker", 10);
+    rear_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_right_force_marker", 10);
+    front_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_left_force_marker", 10);
+    front_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_right_force_marker", 10);
 }
 
 void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -21,14 +31,10 @@ void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
     double qz = msg->orientation.z;
     double qw = msg->orientation.w;
 
-    // Compute roll angle
-    roll = atan2(2.0 * (qw * qx + qy * qz), 1.0 - 2.0 * (qx * qx + qy * qy));
-
-    // Compute pitch angle
+    // Compute roll, pitch, yaw angle
+    roll  = atan2(2.0 * (qw * qx + qy * qz), 1.0 - 2.0 * (qx * qx + qy * qy));
     pitch = asin(2.0 * (qw * qy - qz * qx));
-
-    // Compute yaw angle
-    yaw = atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz));
+    yaw   = atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz));
 
     // TODO:角度还需要进一步处理 
     yaw = yaw - 1.57;
@@ -70,43 +76,62 @@ void RobotWrench::wrenchCb(ConstContactsPtr &_msg){
 
         // Check if the contact is related to the rear left wheel
         if(_msg->contact(i).collision1() == wheel_rear_left_string){
+            wheel_rear_left_position.x = _msg->contact(i).position(0).x();
+            wheel_rear_left_position.y = _msg->contact(i).position(0).y();
+            wheel_rear_left_position.z = _msg->contact(i).position(0).z();
             wheel_rear_left_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
             wheel_rear_left_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
             wheel_rear_left_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
             wheel_rear_left_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
             wheel_rear_left_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
             wheel_rear_left_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+            marker = createArrowMarker(0, "world", wheel_rear_left_wrench.force, wheel_rear_left_position);
+            rear_left_marker_pub.publish(marker);
         }
 
         // Check if the contact is related to the rear right wheel
         if(_msg->contact(i).collision1() == wheel_rear_right_string){
-           
+            wheel_rear_right_position.x = _msg->contact(i).position(0).x();
+            wheel_rear_right_position.y = _msg->contact(i).position(0).y();
+            wheel_rear_right_position.z = _msg->contact(i).position(0).z();
             wheel_rear_right_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
             wheel_rear_right_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
             wheel_rear_right_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
             wheel_rear_right_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
             wheel_rear_right_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
             wheel_rear_right_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+            marker = createArrowMarker(0, "world", wheel_rear_right_wrench.force, wheel_rear_right_position);
+            rear_right_marker_pub.publish(marker);
         }
 
         // Check if the contact is related to the front left wheel
         if(_msg->contact(i).collision1() == wheel_front_left_string){
+            wheel_front_left_position.x = _msg->contact(i).position(0).x();
+            wheel_front_left_position.y = _msg->contact(i).position(0).y();
+            wheel_front_left_position.z = _msg->contact(i).position(0).z();
             wheel_front_left_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
             wheel_front_left_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
             wheel_front_left_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
             wheel_front_left_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
             wheel_front_left_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
             wheel_front_left_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+            marker = createArrowMarker(0, "world", wheel_front_left_wrench.force, wheel_front_left_position);
+            front_left_marker_pub.publish(marker);
         }
 
         // Check if the contact is related to the front right wheel
         if(_msg->contact(i).collision1() == wheel_front_right_string){
+            wheel_front_right_position.x = _msg->contact(i).position(0).x();
+            wheel_front_right_position.y = _msg->contact(i).position(0).y();
+            wheel_front_right_position.z = _msg->contact(i).position(0).z();
             wheel_front_right_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
             wheel_front_right_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
             wheel_front_right_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
             wheel_front_right_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
             wheel_front_right_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
             wheel_front_right_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+            marker = createArrowMarker(0, "world", wheel_front_right_wrench.force, wheel_front_right_position);
+            front_right_marker_pub.publish(marker);
         }
     }
 
@@ -148,6 +173,16 @@ void RobotWrench::computeWrench()
     F_fr = m_rr * g * sin(alpha) + m_rr * a_r * cos(yaw);
     F_r = sqrt(F_dr * F_dr + F_fr * F_fr + 2 * F_dr * F_fr * cos(yaw));
     N_r = m_rr * g * cos(alpha);
+
+    msg_F_l.data = F_l;
+    msg_N_l.data = N_l;
+    msg_F_r.data = F_r;
+    msg_N_r.data = N_r;
+
+    pub_F_l_.publish(msg_F_l);
+    pub_N_l_.publish(msg_N_l);
+    pub_F_r_.publish(msg_F_r);
+    pub_N_r_.publish(msg_N_r);
 }
 
 geometry_msgs::Vector3 RobotWrench::transformForceToVehicleFrame(
@@ -187,4 +222,37 @@ geometry_msgs::Vector3 RobotWrench::transformForceToVehicleFrame(
     force_vehicle.z = force_vehicle_vec(2);
 
     return force_vehicle;
+}
+
+visualization_msgs::Marker RobotWrench::createArrowMarker(int id, 
+                                    const std::string& frame_id, 
+                                    const geometry_msgs::Vector3& force, 
+                                    const geometry_msgs::Point& position) {
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = frame_id;
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "wheel_forces";
+    marker.id = id;
+    marker.type = visualization_msgs::Marker::ARROW;
+    marker.action = visualization_msgs::Marker::ADD;
+
+    geometry_msgs::Point start = position;
+    geometry_msgs::Point end;
+    end.x = position.x + 0.1*force.x;
+    end.y = position.y + 0.1*force.y;
+    end.z = position.z + 0.1*force.z;
+
+    marker.points.push_back(start);
+    marker.points.push_back(end);
+
+    marker.scale.x = 0.02;
+    marker.scale.y = 0.04;
+    marker.scale.z = 0.06;
+
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
+    marker.color.a = 1.0;
+
+    return marker;
 }
