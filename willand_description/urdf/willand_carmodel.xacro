@@ -24,7 +24,7 @@
     </collision>
     <inertial>
       <origin xyz="-0.00509 0 0.03461" rpy="0 0 0"/>
-      <mass value="65.8282"/>
+      <mass value="30"/>
       <inertia
         ixx="63.621330" ixy="11.057206" ixz="0.021099"
         iyy="187.798863" iyz="-0.003735"
@@ -36,7 +36,7 @@
 <link name="imu_link">
   <inertial>
     <origin rpy="0 0 0.02" xyz="0 0 0"/>
-    <mass value="0.1"/>
+    <mass value="0"/>
     <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
   </inertial>
   <visual>
@@ -86,7 +86,7 @@
 <link name="lidar_link">
   <inertial>
     <origin rpy="0 0 0" xyz="0 0 0"/>
-    <mass value="0.5"/>
+    <mass value="0"/>
     <inertia ixx="0.002" ixy="0.0" ixz="0.0" iyy="0.002" iyz="0.0" izz="0.002"/>
   </inertial>
   <visual> 
@@ -164,7 +164,7 @@
   </collision>
   <inertial>
     <origin xyz="0 -0.0075 0" rpy="0 0 0"/>
-    <mass value="1.252"/>
+    <mass value="1.5"/>
     <inertia
       ixx="0.09065214" ixy="0.0" ixz="0.0"
       iyy="0.09065214" iyz="0.0"
@@ -191,7 +191,7 @@
   </collision>
   <inertial>
     <origin xyz="0 -0.0075 0" rpy="0 0 0"/>
-    <mass value="1.0252"/>
+    <mass value="1.5"/>
     <inertia
       ixx="0.09065214" ixy="0.0" ixz="0.0"
       iyy="0.09065214" iyz="0.0"
@@ -218,7 +218,7 @@
     </collision>
     <inertial>
       <origin xyz="0 -0.0075 0" rpy="0 0 0"/>
-      <mass value="1.252"/>
+      <mass value="1.5"/>
       <inertia
         ixx="0.09065214" ixy="0.0" ixz="0.0"
         iyy="0.09065214" iyz="0.0"
@@ -245,7 +245,7 @@
   </collision>
   <inertial>
     <origin xyz="0 -0.0075 0" rpy="0 0 0"/>
-    <mass value="1.252"/>
+    <mass value="1.5"/>
     <inertia
       ixx="0.09065214" ixy="0.0" ixz="0.0"
       iyy="0.09065214" iyz="0.0"
@@ -261,6 +261,9 @@
   <axis xyz="0.0 1.0 0.0"/>
   <limit effort="10000" velocity="1000"/>
   <joint_properties damping="1.0" friction="1.0"/>
+  <sensor name="force_torque" type="force_torque">
+    <update_rate>30</update_rate>
+  </sensor>
 </joint>
 
 <joint name="joint_front_right" type="continuous">
@@ -292,5 +295,18 @@
   <limit effort="10000" velocity="1000"/>
   <joint_properties damping="1.0" friction="1.0"/>
 </joint>
+
+<gazebo reference="wheel_front_left_1">
+  <sensor name="force_sensor" type="force_torque">
+    <pose>0 0 0 0 0 0</pose> <!-- 相对于轮子的位置 -->
+    <always_on>true</always_on> <!-- 始终启用传感器 -->
+    <update_rate>100</update_rate> <!-- 传感器更新频率 -->
+    <plugin name="gazebo_ros_force_torque_sensor" filename="libgazebo_ros_force_torque.so">
+      <topicName>/willand/force_torque/wheel_front_left</topicName> <!-- 发布的ROS话题 -->
+      <frameName>wheel_front_left_1</frameName> <!-- 力传感器参考系 -->
+      <gaussianNoise>0.0</gaussianNoise> <!-- 可选：指定噪声，如果需要的话 -->
+    </plugin>
+  </sensor>
+</gazebo>
 
 </robot>

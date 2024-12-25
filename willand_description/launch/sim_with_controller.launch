@@ -12,6 +12,7 @@
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="$(arg world_name)"/>
         <arg name="paused" value="false"/>
+        <arg name="gui" value="true"/>
     </include>
 
     <!-- Spawn URDF Model -->
@@ -25,7 +26,7 @@
     <node name="map2baselink" pkg="willand_description" type="odom_process.py" output="screen"/>
 
     <!-- Launch Rviz -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find willand_description)/config/willand_orabmap_rviz.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find willand_description)/config/willand_balance_rviz.rviz" />
 
     <!-- publish joint state-->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
@@ -33,7 +34,10 @@
      <!-- Convert joint states to TF transforms for rviz -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
         <param name="publish_frequency" type="double" value="50.0" />
-        <!-- <remap from="/joint_states" to="/willand/joint_states" /> -->
+    </node>
+
+    <node name="rqt_robot_steering" pkg="rqt_robot_steering" type="rqt_robot_steering">
+        <param name="default_topic" value="/willand/drive_controller/cmd_vel"/> 
     </node>
 
 </launch>

@@ -15,13 +15,15 @@ int main(int _argc, char **_argv){
     RobotWrench willand_robot;
     willand_robot.init(n, node);
 
+    ros::Rate loop_rate(50);
+
     // Main loop
     while (ros::ok())
     {
-        gazebo::common::Time::MSleep(20);  // Sleep for 20 ms to reduce CPU usage
-        ros::spinOnce();                   // Handle incoming ROS messages
+        gazebo::common::Time::MSleep(20);
+        ros::spinOnce();
+        loop_rate.sleep();
     }
 
-    // Shutdown Gazebo client
     gazebo::client::shutdown();
 }

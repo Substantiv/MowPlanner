@@ -27,8 +27,23 @@ private:
     double a_x, a_y, a_l, a_r; // Accelerations
     double m, m_r, m_rr, m_rl, g; // Mass, gravity parameters
 
-    ros::Subscriber imu_sub;
+    visualization_msgs::Marker marker;
+    geometry_msgs::Point wheel_rear_left_position;
+    geometry_msgs::Point wheel_rear_right_position;
+    geometry_msgs::Point wheel_front_left_position;
+    geometry_msgs::Point wheel_front_right_position;
+    std_msgs::Float64 msg_sim_F_l, msg_sim_N_l, msg_sim_F_r, msg_sim_N_r;
+    std_msgs::Float64 msg_model_F_l, msg_model_N_l, msg_model_F_r, msg_model_N_r;
+
     gazebo::transport::SubscriberPtr sub;
+
+    ros::Subscriber imu_sub;
+    ros::Publisher rear_left_marker_pub;
+    ros::Publisher rear_right_marker_pub;
+    ros::Publisher front_left_marker_pub;
+    ros::Publisher front_right_marker_pub;
+    ros::Publisher pub_sim_F_l_, pub_sim_N_l_, pub_sim_F_r_, pub_sim_N_r_;
+    ros::Publisher pub_model_F_l_, pub_model_N_l_, pub_model_F_r_, pub_model_N_r_;
 
     // Collision names corresponding to each wheel
     // std::string wheel_front_right_string = "willand::wheel_1::wheel_1_collision";
@@ -39,26 +54,6 @@ private:
     std::string wheel_rear_right_string  = "willand::wheel_rear_right_1::wheel_rear_right_1_collision";
     std::string wheel_front_left_string  = "willand::wheel_front_left_1::wheel_front_left_1_collision";
     std::string wheel_rear_left_string   = "willand::wheel_rear_left_1::wheel_rear_left_1_collision";
-
-    visualization_msgs::Marker marker;
-
-    ros::Publisher pub_F_l_;
-    ros::Publisher pub_N_l_;
-    ros::Publisher pub_F_r_;
-    ros::Publisher pub_N_r_;
-
-    ros::Publisher rear_left_marker_pub;
-    ros::Publisher rear_right_marker_pub;
-    ros::Publisher front_left_marker_pub;
-    ros::Publisher front_right_marker_pub;
-
-    // Publish the forces and normal forces
-    std_msgs::Float64 msg_F_l, msg_N_l, msg_F_r, msg_N_r;
-
-    geometry_msgs::Point wheel_rear_left_position;
-    geometry_msgs::Point wheel_rear_right_position;
-    geometry_msgs::Point wheel_front_left_position;
-    geometry_msgs::Point wheel_front_right_position;
 
 public:
     double yaw, pitch, roll;     // Euler angles

@@ -2,9 +2,9 @@
 
 void RobotWrench::init(ros::NodeHandle& nh, gazebo::transport::NodePtr node)
 {
-    m = 69;           // Vehicle mass
+    m = 36;           // Vehicle mass
     g = 9.81;         // Gravitational acceleration
-    alpha = 0.2;      // Convert angle from degrees to radians
+    alpha = 0;      // Convert angle from degrees to radians
     L = 0.5;          // Vehicle length
     x = 0.5 * L;      // Distance of the center of gravity from the rear axle
     y = 0.1;          // Distance of the center of gravity from the lateral centerline
@@ -13,15 +13,19 @@ void RobotWrench::init(ros::NodeHandle& nh, gazebo::transport::NodePtr node)
     imu_sub = nh.subscribe<sensor_msgs::Imu>("/willand/imu/data", 10, &RobotWrench::imuCallback, this);
     sub = node->Subscribe("/gazebo/default/physics/contacts", &RobotWrench::wrenchCb, this);
 
-    pub_F_l_ = nh.advertise<std_msgs::Float64>("model/F_l", 10);
-    pub_N_l_ = nh.advertise<std_msgs::Float64>("model/N_l", 10);
-    pub_F_r_ = nh.advertise<std_msgs::Float64>("model/F_r", 10);
-    pub_N_r_ = nh.advertise<std_msgs::Float64>("model/N_r", 10);
+    pub_model_F_l_ = nh.advertise<std_msgs::Float64>("model/F_l", 100);
+    pub_model_N_l_ = nh.advertise<std_msgs::Float64>("model/N_l", 100);
+    pub_model_F_r_ = nh.advertise<std_msgs::Float64>("model/F_r", 100);
+    pub_model_N_r_ = nh.advertise<std_msgs::Float64>("model/N_r", 100);
+    pub_sim_F_l_ = nh.advertise<std_msgs::Float64>("sim/F_l", 100);
+    pub_sim_N_l_ = nh.advertise<std_msgs::Float64>("sim/N_l", 100);
+    pub_sim_F_r_ = nh.advertise<std_msgs::Float64>("sim/F_r", 100);
+    pub_sim_N_r_ = nh.advertise<std_msgs::Float64>("sim/N_r", 100);
 
-    rear_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_left_force_marker", 10);
-    rear_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_right_force_marker", 10);
-    front_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_left_force_marker", 10);
-    front_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_right_force_marker", 10);
+    rear_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_left_force_marker", 100);
+    rear_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_right_force_marker", 100);
+    front_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_left_force_marker", 100);
+    front_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_right_force_marker", 100);
 }
 
 void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -135,6 +139,20 @@ void RobotWrench::wrenchCb(ConstContactsPtr &_msg){
         }
     }
 
+    msg_sim_F_l.data = sqrt(pow(wheel_rear_left_wrench.force.x,2)+pow(wheel_rear_left_wrench.force.y,2));
+    msg_sim_N_l.data = wheel_rear_right_wrench.force.z;
+    msg_sim_F_r.data = sqrt(pow(wheel_rear_right_wrench.force.x,2)+pow(wheel_rear_right_wrench.force.y,2));
+    msg_sim_N_r.data = wheel_rear_right_wrench.force.z;
+    pub_sim_F_l_.publish(msg_sim_F_l);
+    pub_sim_N_l_.publish(msg_sim_N_l);
+    pub_sim_F_r_.publish(msg_sim_F_r);
+    pub_sim_N_r_.publish(msg_sim_N_r);
+
+    // ROS_INFO("%4f", sqrt(pow(wheel_rear_left_wrench.force.x,2)+pow(wheel_rear_left_wrench.force.y,2)+pow(wheel_rear_left_wrench.force.z,2)) + 
+    //              sqrt(pow(wheel_rear_right_wrench.force.x,2)+pow(wheel_rear_right_wrench.force.y,2)+pow(wheel_rear_right_wrench.force.z,2)) +
+    //              sqrt(pow(wheel_front_left_wrench.force.x,2)+pow(wheel_front_left_wrench.force.y,2)+pow(wheel_front_left_wrench.force.z,2)) +
+    //              sqrt(pow(wheel_front_right_wrench.force.x,2)+pow(wheel_front_right_wrench.force.y,2)+pow(wheel_front_right_wrench.force.z,2)) );
+
     wrenchCompare();
 }
 
@@ -156,12 +174,12 @@ void RobotWrench::computeWrench()
     /* Compute normal forces */
     Nf_car = (m * g * x * cos(pitch) - m * g * y * sin(pitch) - m * y * a_y) / L;
     Nr_car = m * g * cos(pitch) - Nf_car;
-    m_r = Nr_car / (Nf_car + Nr_car);
+    m_r = Nr_car / (Nf_car + Nr_car) * m;
 
     Nrl_car = 0.5 * m_r * g * cos(roll) - y / d * m_r * g * sin(roll) + m_r * a_y * y / d;
     Nrr_car = Nr_car - Nrl_car;
-    m_rl = Nrl_car / (Nf_car + Nr_car);
-    m_rr = Nrr_car / (Nf_car + Nr_car);
+    m_rl = Nrl_car / (Nf_car + Nr_car)*m;
+    m_rr = Nrr_car / (Nf_car + Nr_car)*m;
 
     /* Compute driving and friction forces */
     F_dl = m_rl * g * sin(pitch) + m_rl * a_l;
@@ -174,15 +192,14 @@ void RobotWrench::computeWrench()
     F_r = sqrt(F_dr * F_dr + F_fr * F_fr + 2 * F_dr * F_fr * cos(yaw));
     N_r = m_rr * g * cos(alpha);
 
-    msg_F_l.data = F_l;
-    msg_N_l.data = N_l;
-    msg_F_r.data = F_r;
-    msg_N_r.data = N_r;
-
-    pub_F_l_.publish(msg_F_l);
-    pub_N_l_.publish(msg_N_l);
-    pub_F_r_.publish(msg_F_r);
-    pub_N_r_.publish(msg_N_r);
+    msg_model_F_l.data = F_l;
+    msg_model_N_l.data = N_l;
+    msg_model_F_r.data = F_r;
+    msg_model_N_r.data = N_r;
+    pub_model_F_l_.publish(msg_model_F_l);
+    pub_model_N_l_.publish(msg_model_N_l);
+    pub_model_F_r_.publish(msg_model_F_r);
+    pub_model_N_r_.publish(msg_model_N_r);
 }
 
 geometry_msgs::Vector3 RobotWrench::transformForceToVehicleFrame(
@@ -238,9 +255,9 @@ visualization_msgs::Marker RobotWrench::createArrowMarker(int id,
 
     geometry_msgs::Point start = position;
     geometry_msgs::Point end;
-    end.x = position.x + 0.1*force.x;
-    end.y = position.y + 0.1*force.y;
-    end.z = position.z + 0.1*force.z;
+    end.x = position.x + 0.001*force.x;
+    end.y = position.y + 0.001*force.y;
+    end.z = position.z + 0.001*force.z;
 
     marker.points.push_back(start);
     marker.points.push_back(end);

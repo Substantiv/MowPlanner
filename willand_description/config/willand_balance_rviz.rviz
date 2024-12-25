@@ -5,8 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /RobotModel1
         - /TF1/Tree1
-        - /Marker1/Status1
       Splitter Ratio: 0.5138339996337891
     Tree Height: 824
   - Class: rviz/Selection
@@ -67,28 +67,38 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel_1:
+        imu_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel_2:
+        lidar_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel_3:
+        wheel_front_left_1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        wheel_4:
+        wheel_front_right_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wheel_rear_left_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wheel_rear_right_1:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: /willand/robot_description
+      Robot Description: robot_description
       TF Prefix: ""
       Update Interval: 0
       Value: true
@@ -115,7 +125,7 @@ Visualization Manager:
       Marker Topic: /willand/front_left_force_marker
       Name: Marker
       Namespaces:
-        wheel_forces: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -123,7 +133,7 @@ Visualization Manager:
       Marker Topic: /willand/front_right_force_marker
       Name: Marker
       Namespaces:
-        wheel_forces: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -131,7 +141,7 @@ Visualization Manager:
       Marker Topic: /willand/rear_left_force_marker
       Name: Marker
       Namespaces:
-        wheel_forces: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -139,7 +149,7 @@ Visualization Manager:
       Marker Topic: /willand/rear_right_force_marker
       Name: Marker
       Namespaces:
-        wheel_forces: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -186,9 +196,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.26039692759513855
+      Pitch: 0.26539692282676697
       Target Frame: <Fixed Frame>
-      Yaw: 4.140424728393555
+      Yaw: 4.155425071716309
     Saved: ~
 Window Geometry:
   Displays:
