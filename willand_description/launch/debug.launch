@@ -1,4 +1,0 @@
-<launch>
-    <node name="robot_wrench_node" pkg="willand_description" type="robot_wrench_node">
-    </node>
-</launch>

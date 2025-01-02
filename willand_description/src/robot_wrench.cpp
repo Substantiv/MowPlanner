@@ -2,6 +2,7 @@
 
 void RobotWrench::init(ros::NodeHandle& nh, gazebo::transport::NodePtr node)
 {
+    ROS_INFO("Here");
     m = 36;           // Vehicle mass
     g = 9.81;         // Gravitational acceleration
     alpha = 0;      // Convert angle from degrees to radians
@@ -10,22 +11,29 @@ void RobotWrench::init(ros::NodeHandle& nh, gazebo::transport::NodePtr node)
     y = 0.1;          // Distance of the center of gravity from the lateral centerline
     d = 0.3;          // Distance between the left and right wheels
 
+    sub = node->Subscribe("/gazebo/default/physics/contacts", &RobotWrench::wrenchBoxCb, this);
     imu_sub = nh.subscribe<sensor_msgs::Imu>("/willand/imu/data", 10, &RobotWrench::imuCallback, this);
-    sub = node->Subscribe("/gazebo/default/physics/contacts", &RobotWrench::wrenchCb, this);
-
-    pub_model_F_l_ = nh.advertise<std_msgs::Float64>("model/F_l", 100);
-    pub_model_N_l_ = nh.advertise<std_msgs::Float64>("model/N_l", 100);
-    pub_model_F_r_ = nh.advertise<std_msgs::Float64>("model/F_r", 100);
-    pub_model_N_r_ = nh.advertise<std_msgs::Float64>("model/N_r", 100);
-    pub_sim_F_l_ = nh.advertise<std_msgs::Float64>("sim/F_l", 100);
-    pub_sim_N_l_ = nh.advertise<std_msgs::Float64>("sim/N_l", 100);
-    pub_sim_F_r_ = nh.advertise<std_msgs::Float64>("sim/F_r", 100);
-    pub_sim_N_r_ = nh.advertise<std_msgs::Float64>("sim/N_r", 100);
 
     rear_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_left_force_marker", 100);
     rear_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/rear_right_force_marker", 100);
     front_left_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_left_force_marker", 100);
     front_right_marker_pub = nh.advertise<visualization_msgs::Marker>("willand/front_right_force_marker", 100);
+
+    pub_model_F_l_ = nh.advertise<std_msgs::Float64>("model/F_l", 100);
+    pub_model_N_l_ = nh.advertise<std_msgs::Float64>("model/N_l", 100);
+    pub_model_F_r_ = nh.advertise<std_msgs::Float64>("model/F_r", 100);
+    pub_model_N_r_ = nh.advertise<std_msgs::Float64>("model/N_r", 100);
+
+
+    pub_sim_F_l_ = nh.advertise<std_msgs::Float64>("sim/F_l", 100);
+    pub_sim_N_l_ = nh.advertise<std_msgs::Float64>("sim/N_l", 100);
+    pub_sim_F_r_ = nh.advertise<std_msgs::Float64>("sim/F_r", 100);
+    pub_sim_N_r_ = nh.advertise<std_msgs::Float64>("sim/N_r", 100);
+
+    front_right_force_pub = nh.advertise<geometry_msgs::Wrench>("front_right_force_contact", 100);
+    front_left_force_pub = nh.advertise<geometry_msgs::Wrench>("front_left_force_contact", 100);
+    rear_right_force_pub = nh.advertise<geometry_msgs::Wrench>("rear_right_force_contact", 100);
+    rear_left_force_pub = nh.advertise<geometry_msgs::Wrench>("rear_left_force_contact", 100);
 }
 
 void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
@@ -70,6 +78,28 @@ void RobotWrench::imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
     // Compute left and right wheel accelerations
     a_l = a_x - (angular_acceleration * d / 2.0); // Left wheel acceleration
     a_r = a_x + (angular_acceleration * d / 2.0); // Right wheel acceleration
+}
+
+// Callback function for contact messages
+void RobotWrench::wrenchBoxCb(ConstContactsPtr &_msg){
+
+    // Iterate over all contacts in the message
+    for (int i = 0; i < _msg->contact_size(); ++i) {
+        if(_msg->contact(i).collision1() == "Box::link_3::collision"){
+            wheel_rear_left_position.x = _msg->contact(i).position(0).x();
+            wheel_rear_left_position.y = _msg->contact(i).position(0).y();
+            wheel_rear_left_position.z = _msg->contact(i).position(0).z();
+            wheel_rear_left_wrench.force.x = _msg->contact(i).wrench(0).body_1_wrench().force().x();
+            wheel_rear_left_wrench.force.y = _msg->contact(i).wrench(0).body_1_wrench().force().y();
+            wheel_rear_left_wrench.force.z = _msg->contact(i).wrench(0).body_1_wrench().force().z();
+            wheel_rear_left_wrench.torque.x = _msg->contact(i).wrench(0).body_1_wrench().torque().x();
+            wheel_rear_left_wrench.torque.y = _msg->contact(i).wrench(0).body_1_wrench().torque().y();
+            wheel_rear_left_wrench.torque.z = _msg->contact(i).wrench(0).body_1_wrench().torque().z();
+        }
+    }
+
+    rear_left_force_pub.publish(wheel_rear_left_wrench);
+    
 }
 
 // Callback function for contact messages
@@ -139,14 +169,20 @@ void RobotWrench::wrenchCb(ConstContactsPtr &_msg){
         }
     }
 
-    msg_sim_F_l.data = sqrt(pow(wheel_rear_left_wrench.force.x,2)+pow(wheel_rear_left_wrench.force.y,2));
-    msg_sim_N_l.data = wheel_rear_right_wrench.force.z;
-    msg_sim_F_r.data = sqrt(pow(wheel_rear_right_wrench.force.x,2)+pow(wheel_rear_right_wrench.force.y,2));
+    msg_sim_F_l.data = wheel_front_right_wrench.force.x;
+    msg_sim_N_l.data = wheel_front_right_wrench.force.y;
+    msg_sim_F_r.data = wheel_front_right_wrench.force.x;
     msg_sim_N_r.data = wheel_rear_right_wrench.force.z;
+
     pub_sim_F_l_.publish(msg_sim_F_l);
     pub_sim_N_l_.publish(msg_sim_N_l);
     pub_sim_F_r_.publish(msg_sim_F_r);
     pub_sim_N_r_.publish(msg_sim_N_r);
+
+    // front_right_force_pub.publish(wheel_front_right_wrench);
+    // front_left_force_pub.publish(wheel_front_left_wrench);
+    // rear_right_force_pub.publish(wheel_rear_right_wrench);
+    // rear_left_force_pub.publish(wheel_rear_left_wrench);
 
     // ROS_INFO("%4f", sqrt(pow(wheel_rear_left_wrench.force.x,2)+pow(wheel_rear_left_wrench.force.y,2)+pow(wheel_rear_left_wrench.force.z,2)) + 
     //              sqrt(pow(wheel_rear_right_wrench.force.x,2)+pow(wheel_rear_right_wrench.force.y,2)+pow(wheel_rear_right_wrench.force.z,2)) +

@@ -45,15 +45,24 @@ private:
     ros::Publisher pub_sim_F_l_, pub_sim_N_l_, pub_sim_F_r_, pub_sim_N_r_;
     ros::Publisher pub_model_F_l_, pub_model_N_l_, pub_model_F_r_, pub_model_N_r_;
 
+    ros::Publisher front_right_force_pub;
+    ros::Publisher front_left_force_pub;
+    ros::Publisher rear_right_force_pub;
+    ros::Publisher rear_left_force_pub;
+
     // Collision names corresponding to each wheel
     // std::string wheel_front_right_string = "willand::wheel_1::wheel_1_collision";
     // std::string wheel_rear_right_string  = "willand::wheel_2::wheel_2_collision";
     // std::string wheel_front_left_string  = "willand::wheel_3::wheel_3_collision";
     // std::string wheel_rear_left_string   = "willand::wheel_4::wheel_4_collision";
-    std::string wheel_front_right_string = "willand::wheel_front_right_1::wheel_front_right_1_collision";
-    std::string wheel_rear_right_string  = "willand::wheel_rear_right_1::wheel_rear_right_1_collision";
-    std::string wheel_front_left_string  = "willand::wheel_front_left_1::wheel_front_left_1_collision";
-    std::string wheel_rear_left_string   = "willand::wheel_rear_left_1::wheel_rear_left_1_collision";
+    // std::string wheel_front_right_string = "willand::wheel_front_right_1::wheel_front_right_1_collision";
+    // std::string wheel_rear_right_string  = "willand::wheel_rear_right_1::wheel_rear_right_1_collision";
+    // std::string wheel_front_left_string  = "willand::wheel_front_left_1::wheel_front_left_1_collision";
+    // std::string wheel_rear_left_string   = "willand::wheel_rear_left_1::wheel_rear_left_1_collision";
+    std::string wheel_front_right_string = "willand::front_right_wheel::front_right_wheel_collision";
+    std::string wheel_rear_right_string  = "willand::back_right_wheel::back_right_wheel_collision";
+    std::string wheel_front_left_string  = "willand::front_left_wheel::front_left_wheel_collision";
+    std::string wheel_rear_left_string   = "willand::back_left_wheel::back_left_wheel_collision";
 
 public:
     double yaw, pitch, roll;     // Euler angles
@@ -75,6 +84,7 @@ public:
     void init(ros::NodeHandle& nh, gazebo::transport::NodePtr node); // Initialize the class
     void imuCallback(const sensor_msgs::Imu::ConstPtr& msg); // Callback to process IMU data
     void wrenchCb(ConstContactsPtr &_msg);
+    void wrenchBoxCb(ConstContactsPtr &_msg);
 
     geometry_msgs::Vector3 transformForceToVehicleFrame(const geometry_msgs::Vector3 &force_world);
     visualization_msgs::Marker createArrowMarker(int id, const std::string& frame_id, const geometry_msgs::Vector3& force, const geometry_msgs::Point& position);
