@@ -81,7 +81,11 @@
         "valarray": "cpp",
         "variant": "cpp",
         "bit": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "core": "cpp",
+        "specialfunctions": "cpp",
+        "dense": "cpp",
+        "eigen": "cpp"
     },
     "ros.distro": "noetic"
 }

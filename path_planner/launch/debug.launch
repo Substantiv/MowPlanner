@@ -1,0 +1,5 @@
+<launch>
+    <rosparam file="$(find path_planner)/config/param.yaml" command="load" />
+
+    <node name="coverage_path_node" pkg="path_planner" type="planner_node" />
+</launch>

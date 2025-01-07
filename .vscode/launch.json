@@ -7,7 +7,7 @@
         {
             "name": "ROS: Launch",
             "request": "launch",
-            "target": "/home/jiance/Development/willand_ws/src/willand_description/launch/debug.launch",
+            "target": "/home/jiance/Development/willand_ws/src/path_planner/launch/debug.launch",
             "launch": [
                 "rviz",
                 "gz",

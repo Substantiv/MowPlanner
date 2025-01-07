@@ -1,0 +1,23 @@
+alm_traj_opt:
+  # rho_T: 500.0    # no scaling
+  rho_T: 100000.0 # scaling
+  rho_ter: 10.0
+  max_vel: 0.5
+  max_acc_lon: 5.0
+  max_acc_lat: 10.0
+  max_kap: 2.1
+  min_cxi: 0.8
+  max_sig: 0.05
+  use_scaling: true
+  rho: 1.0
+  beta: 1000.0
+  gamma: 1.0
+  epsilon_con: 0.001
+  max_iter: 10
+  g_epsilon: 1.0e-03
+  min_step: 1.0e-32
+  inner_max_iter: 10000
+  delta: 1.0e-4
+  mem_size: 256
+  past: 3
+  int_K: 16
