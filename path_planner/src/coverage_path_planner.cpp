@@ -1,6 +1,9 @@
 #include "coverage_path_planner.h"
 
 void CoveragePathPlanner::init(ros::NodeHandle& nh){
+    nh.getParam("coverage_path_planner/squareSize", squareSize);
+    nh.getParam("coverage_path_planner/stepSize", stepSize);
+
     coverage_path_pub = nh.advertise<nav_msgs::Path>("/coverage_path", 10);
     path_timer = nh.createTimer(ros::Duration(1.0), &CoveragePathPlanner::rcvWpsCallBack, this);
 }
@@ -9,11 +12,11 @@ std::vector<Pose> CoveragePathPlanner::generateBowPath() {
     std::vector<Pose> path;
 
     bool direction = true; // True for left-to-right, false for right-to-left
-    for (double y = 0; y <= squareSize_; y += stepSize_) {
+    for (double y = 0; y <= squareSize; y += stepSize) {
         if (direction) {
-            generateSegment(path, {0, y, 0}, {squareSize_, y, 0});
+            generateSegment(path, {0, y, 0}, {squareSize, y, 0});
         } else {
-            generateSegment(path, {squareSize_, y, 0}, {0, y, 0});
+            generateSegment(path, {squareSize, y, 0}, {0, y, 0});
         }
         direction = !direction;
     }
@@ -25,7 +28,7 @@ void CoveragePathPlanner::generateSegment(std::vector<Pose> &path, const Pose &s
     double dx = end.x - start.x;
     double dy = end.y - start.y;
     double distance = std::sqrt(dx * dx + dy * dy);
-    double steps = std::ceil(distance / stepSize_);
+    double steps = std::ceil(distance / stepSize);
 
     for (int i = 0; i <= steps; ++i) {
         double t = static_cast<double>(i) / steps;

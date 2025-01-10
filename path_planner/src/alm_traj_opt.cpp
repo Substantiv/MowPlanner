@@ -25,6 +25,7 @@ void ALMTrajOpt::init(ros::NodeHandle& nh){
     nh.getParam("alm_traj_opt/int_K", int_K);
 
     coverage_path_sub = nh.subscribe<nav_msgs::Path>("/coverage_path", 10, &ALMTrajOpt::pathCallback, this);
+    se2_traj_pub = nh.advertise<nav_msgs::Path>("/se2_traj", 10);
 }
 
 
@@ -127,6 +128,8 @@ void ALMTrajOpt::pathCallback(const nav_msgs::Path::ConstPtr& msg){
     }
 
     optimizeTraj(init_xy, end_xy, inner_xy, init_yaw, end_yaw, inner_yaw, total_time);
+
+    SE2Trajectory back_end_traj = minco_se2.getTraj();
 }
 
 
@@ -141,6 +144,7 @@ int ALMTrajOpt::optimizeTraj(const Eigen::MatrixXd &initStateXY, const Eigen::Ma
     end_xy = endStateXY;
     init_yaw = initYaw.transpose();
     end_yaw = endYaw.transpose();
+    minco_se2.reset(piece_xy, piece_yaw);
 
     int variable_num = 2*(piece_xy-1) + (piece_yaw-1) + 1;
     // non-holonomic
@@ -175,12 +179,12 @@ int ALMTrajOpt::optimizeTraj(const Eigen::MatrixXd &initStateXY, const Eigen::Ma
 
     // lbfgs params
     lbfgs::lbfgs_parameter_t lbfgs_params;
-    lbfgs_params.mem_size = mem_size;
-    lbfgs_params.past = past;
-    lbfgs_params.g_epsilon = g_epsilon;
-    lbfgs_params.min_step = min_step;
-    lbfgs_params.delta = delta;
-    lbfgs_params.max_iterations = inner_max_iter;
+    lbfgs_params.mem_size = mem_size;                // 历史变量数，用于近似 Hessian 矩阵
+    lbfgs_params.past = past;                        // 用于检查目标函数的收敛历史长度
+    lbfgs_params.g_epsilon = g_epsilon;              // 梯度的停止准则，当梯度的无穷范数低于此值时停止迭代。
+    lbfgs_params.min_step = min_step;                // 步长的最小值限制
+    lbfgs_params.delta = delta;                      // 相邻目标值的变化小于此值时认为收敛
+    lbfgs_params.max_iterations = inner_max_iter;    // 最大迭代次数
     double inner_cost;
 
     // begin PHR Augmented Lagrangian Method
@@ -223,21 +227,94 @@ int ALMTrajOpt::optimizeTraj(const Eigen::MatrixXd &initStateXY, const Eigen::Ma
         }
     }
     
-
     return ret_code;
 }
 
+
+void ALMTrajOpt::visSE2Traj(const SE2Trajectory& traj)
+{
+    nav_msgs::Path back_end_path;
+    back_end_path.header.frame_id = "world";
+    back_end_path.header.stamp = ros::Time::now();
+    
+    geometry_msgs::PoseStamped p;
+    for (double t=0.0; t<traj.getTotalDuration(); t+=0.03)
+    {
+        Eigen::Vector2d pos = traj.getPos(t);
+        double yaw = traj.getAngle(t);
+        p.pose.position.x = pos(0);
+        p.pose.position.y = pos(1);
+        p.pose.position.z = 0.0;
+        p.pose.orientation.w = cos(yaw/2.0);
+        p.pose.orientation.x = 0.0;
+        p.pose.orientation.y = 0.0;
+        p.pose.orientation.z = sin(yaw/2.0);
+        back_end_path.poses.push_back(p);
+    }
+    Eigen::Vector2d pos = traj.getPos(traj.getTotalDuration());
+    double yaw = traj.getAngle(traj.getTotalDuration());
+    p.pose.position.x = pos(0);
+    p.pose.position.y = pos(1);
+    p.pose.position.z = 0.0;
+    p.pose.orientation.w = cos(yaw/2.0);
+    p.pose.orientation.x = 0.0;
+    p.pose.orientation.y = 0.0;
+    p.pose.orientation.z = sin(yaw/2.0);
+    back_end_path.poses.push_back(p);
+
+    se2_traj_pub.publish(back_end_path);
+}
+
+
 static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::VectorXd& grad)
 {
+    ALMTrajOpt& obj = *(ALMTrajOpt*) ptrObj;
 
-    double jerk_cost = 0.0;
+    // get x
+    const double& tau = x(0);
+    double& gradtau = grad(0);
+    Eigen::Map<const Eigen::MatrixXd> Pxy(x.data()+obj.dim_T, 2, obj.piece_xy-1);
+    Eigen::Map<Eigen::MatrixXd> gradPxy(grad.data()+obj.dim_T, 2, obj.piece_xy-1);
+    Eigen::Map<const Eigen::MatrixXd> Pyaw(x.data()+obj.dim_T+2*(obj.piece_xy-1), 1, obj.piece_yaw-1);
+    Eigen::Map<Eigen::MatrixXd> gradPyaw(grad.data()+obj.dim_T+2*(obj.piece_xy-1), 1, obj.piece_yaw-1);
+
+    // get T from tau, generate MINCO trajector
+    Eigen::VectorXd Txy, Tyaw;
+    Txy.resize(obj.piece_xy);
+    Tyaw.resize(obj.piece_yaw);
+    obj.calTfromTau(tau, Txy);
+    obj.calTfromTau(tau, Tyaw);
+    obj.minco_se2.generate(obj.init_xy, obj.end_xy, Pxy, Txy, obj.init_yaw, obj.end_yaw, Pyaw, Tyaw);
+
+    // get jerk cost with grad (C, T)
+    double jerk_cost = 0;
+    Eigen::MatrixXd gdCxy_jerk, gdCyaw_jerk;
+    Eigen::VectorXd gdTxy_jerk, gdTyaw_jerk;
+    obj.minco_se2.calJerkGradCT(gdCxy_jerk, gdTxy_jerk, gdCyaw_jerk, gdTyaw_jerk);
+    jerk_cost = obj.minco_se2.getTrajJerkCost() * obj.scale_fx;
+
+    // get grad (q, T) from (C, T)
+    Eigen::MatrixXd gdCxy = gdCxy_jerk * obj.scale_fx;
+    Eigen::VectorXd gdTxy = gdTxy_jerk * obj.scale_fx;
+    Eigen::MatrixXd gdCyaw = gdCyaw_jerk * obj.scale_fx;
+    Eigen::VectorXd gdTyaw = gdTyaw_jerk * obj.scale_fx;
+    Eigen::MatrixXd gradPxy_temp;
+    Eigen::MatrixXd gradPyaw_temp;
+    obj.minco_se2.calGradCTtoQT(gdCxy, gdTxy, gradPxy_temp, gdCyaw, gdTyaw, gradPyaw_temp);
+    gradPxy = gradPxy_temp;
+    gradPyaw = gradPyaw_temp;
+
+    // get tau cost with grad
+    double tau_cost = obj.rho_T * obj.expC2(tau) * obj.scale_fx;
+    double grad_Tsum = obj.rho_T * obj.scale_fx + gdTxy.sum() / obj.piece_xy + gdTyaw.sum() / obj.piece_yaw;
+    gradtau = grad_Tsum * obj.getTtoTauGrad(tau);
 
     return jerk_cost;
 }
 
-static int earlyExit(void* ptrObj, const Eigen::VectorXd& x, const Eigen::VectorXd& grad, 
-                        const double fx, const double step, int k, int ls)
-{
 
+static int earlyExit(void* ptrObj, const Eigen::VectorXd& x, const Eigen::VectorXd& grad, 
+                    const double fx, const double step, int k, int ls)
+{
     return k > 1e3;
 }

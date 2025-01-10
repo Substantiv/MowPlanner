@@ -24,9 +24,9 @@ private:
     ros::Timer path_timer;
     ros::Publisher coverage_path_pub;
 
-    double squareSize_ = 10.0;          // Size of the square area
-    double stepSize_ = 1.0;             // Distance between rows
-    double turningRadius_ = 2.0;        // Minimum turning radius for RS curves (not used directly here)
+    double squareSize;           // Size of the square area
+    double stepSize;             // Distance between rows
+    double turningRadius;        // Minimum turning radius for RS curves (not used directly here)
 
     std::vector<Pose> _path;
 

@@ -21,3 +21,6 @@ alm_traj_opt:
   mem_size: 256
   past: 3
   int_K: 16
+coverage_path_planner:
+  squareSize: 10.0 
+  stepSize: 1.0
