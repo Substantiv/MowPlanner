@@ -12,6 +12,11 @@
 #include "utils/lbfgs.hpp"
 #include "utils/se2traj.hpp"
 
+constexpr double delta_sigl = 0.01;
+constexpr double cur_scale = 10.0;
+constexpr double sig_scale = 1000.0;
+constexpr double scale_trick_jerk = 1000.0;
+
 class ALMTrajOpt
 {
 private:
@@ -72,6 +77,7 @@ public:
                     const Eigen::VectorXd &initYaw,const Eigen::VectorXd &endYaw, const Eigen::VectorXd &innerPtsYaw, \
                     const double & totalTime);
     void visSE2Traj(const SE2Trajectory& traj);
+    void calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eigen::VectorXd &gdTxy, Eigen::MatrixXd& gdCyaw, Eigen::VectorXd &gdTyaw);
 
     inline double logC2(const double& T);
     inline double expC2(const double& tau);
@@ -79,6 +85,8 @@ public:
     inline void updateDualVars();
     inline bool judgeConvergence();
     inline void calTfromTau(const double& tau, Eigen::VectorXd& T);
+    inline double getAugmentedCost(double h_or_g, double lambda_or_mu);
+    inline double getAugmentedGrad(double h_or_g, double lambda_or_mu);
 
 };
 
@@ -128,6 +136,17 @@ inline double ALMTrajOpt::getTtoTauGrad(const double& tau)
         double denSqrt = (0.5 * tau - 1.0) * tau + 1.0;
         return (1.0 - tau) / (denSqrt * denSqrt);
     } 
+}
+
+// get 0.5ρ(h + λ/ρ)^2 or 0.5ρ(g + μ/ρ)^2
+inline double ALMTrajOpt::getAugmentedCost(double h_or_g, double lambda_or_mu)
+{
+    return h_or_g * (lambda_or_mu + 0.5*rho*h_or_g);
+}
+
+inline double ALMTrajOpt::getAugmentedGrad(double h_or_g, double lambda_or_mu)
+{
+    return rho * h_or_g + lambda_or_mu;
 }
 
 static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::VectorXd& grad);
