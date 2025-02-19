@@ -748,7 +748,6 @@ public:
     // know ∂K/∂C, ∂K/∂T, K(C(q,T),T) = W(q,T)
     // then get ∂W/∂q, ∂W/∂T
     inline void calGradCTtoQT(const Eigen::MatrixXd& gdC, Eigen::VectorXd& gdT, Eigen::MatrixXd& gdP)
-
     {
         gdP.resize(Dim, N - 1);
         Eigen::MatrixXd adjGrad = gdC;

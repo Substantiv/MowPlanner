@@ -24,7 +24,7 @@ void ALMTrajOpt::init(ros::NodeHandle& nh){
     nh.getParam("alm_traj_opt/past", past);
     nh.getParam("alm_traj_opt/int_K", int_K);
 
-    coverage_path_sub = nh.subscribe<nav_msgs::Path>("/coverage_path", 10, &ALMTrajOpt::pathCallback, this);
+    coverage_path_sub = nh.subscribe<nav_msgs::Path>("/kino_astar/path", 10, &ALMTrajOpt::pathCallback, this);
     se2_traj_pub = nh.advertise<nav_msgs::Path>("/se2_traj", 10);
 }
 
@@ -84,8 +84,9 @@ void ALMTrajOpt::pathCallback(const nav_msgs::Path::ConstPtr& msg){
     init_yaw << init_path[0].z(), 0.0, 0.0;
     end_yaw << init_path.back().z(), 0.0, 0.0;
 
-    init_xy.col(1) << 0.05 * cos(init_yaw(0)), 0.05 * sin(init_yaw(0));
-    end_xy.col(1) << 0.05 * cos(end_yaw(0)), 0.05 * sin(end_yaw(0));
+    // Distribute init_xy(0.05) and end_xy(0.05) velocity to x and y based on yaw angle
+    init_xy.col(1) << 0.05*cos(init_yaw(0)), 0.05*sin(init_yaw(0));
+    end_xy.col(1) << 0.05*cos(end_yaw(0)), 0.05*sin(end_yaw(0));
 
     // linear interpolation for position and yaw    
     double temp_len_yaw = 0.0;
@@ -130,26 +131,29 @@ void ALMTrajOpt::pathCallback(const nav_msgs::Path::ConstPtr& msg){
     optimizeTraj(init_xy, end_xy, inner_xy, init_yaw, end_yaw, inner_yaw, total_time);
 
     SE2Trajectory back_end_traj = minco_se2.getTraj();
+
+    visSE2Traj(back_end_traj);
 }
 
 
 int ALMTrajOpt::optimizeTraj(const Eigen::MatrixXd &initStateXY, const Eigen::MatrixXd &endStateXY, const Eigen::MatrixXd &innerPtsXY, \
                             const Eigen::VectorXd &initYaw, const Eigen::VectorXd &endYaw, const Eigen::VectorXd &innerPtsYaw, \
                             const double & totalTime){
-    int ret_code;
 
-    piece_xy = innerPtsXY.cols() + 1;
-    piece_yaw = innerPtsYaw.size() + 1;
+    piece_xy = innerPtsXY.cols() + 1;       // Number of segments in the xy trajectory
+    piece_yaw = innerPtsYaw.size() + 1;     // Number of segments in the yaw trajectory                   
     init_xy = initStateXY;
     end_xy = endStateXY;
     init_yaw = initYaw.transpose();
     end_yaw = endYaw.transpose();
     minco_se2.reset(piece_xy, piece_yaw);
 
-    int variable_num = 2*(piece_xy-1) + (piece_yaw-1) + 1;
-    // non-holonomic
-    equal_num = piece_xy * (int_K + 1);
-    // longitude velocity, longitude acceleration, latitude acceleration
+    // variable number: total_time + inner_xy_point + inner_yaw_point
+    int variable_num = 1 + 2*(piece_xy-1) + (piece_yaw-1);
+    // non-holonomic constraint: dx*sin(yaw) + dy*cos(yaw) = 0
+    equal_num = piece_xy * (int_K + 1); // Discretize each segment into K parts, resulting in K+1 points per segment
+    // dynamic feasibility constrains (longitude velocity, longitude acceleration, latitude acceleration, curvature)
+    // user-defined constrains(attitude, terrain curvature)
     non_equal_num = piece_xy * (int_K + 1) * 6;
 
     hx.resize(equal_num);
@@ -168,29 +172,35 @@ int ALMTrajOpt::optimizeTraj(const Eigen::MatrixXd &initStateXY, const Eigen::Ma
     Eigen::VectorXd x;
     x.resize(variable_num);
 
+    // Allocate variables
     dim_T = 1;
+    // Time optimization variable: total time
     double& tau = x(0);
-    Eigen::Map<Eigen::MatrixXd> Pxy(x.data()+dim_T, 2, piece_xy-1);
-    Eigen::Map<Eigen::MatrixXd> Pyaw(x.data()+dim_T+2*(piece_xy-1), 1, piece_yaw-1);
-
     tau = logC2(totalTime);
+
+    // xy trajectory optimization variables: intermediate XY trajectory points
+    Eigen::Map<Eigen::MatrixXd> Pxy(x.data() + dim_T, 2, piece_xy - 1);
     Pxy = innerPtsXY;
+
+    // yaw trajectory optimization variables: intermediate yaw trajectory points
+    Eigen::Map<Eigen::MatrixXd> Pyaw(x.data() + dim_T + 2 * (piece_xy - 1), 1, piece_yaw - 1);
     Pyaw = innerPtsYaw.transpose();
 
     // lbfgs params
     lbfgs::lbfgs_parameter_t lbfgs_params;
-    lbfgs_params.mem_size = mem_size;                // 历史变量数，用于近似 Hessian 矩阵
-    lbfgs_params.past = past;                        // 用于检查目标函数的收敛历史长度
-    lbfgs_params.g_epsilon = g_epsilon;              // 梯度的停止准则，当梯度的无穷范数低于此值时停止迭代。
-    lbfgs_params.min_step = min_step;                // 步长的最小值限制
-    lbfgs_params.delta = delta;                      // 相邻目标值的变化小于此值时认为收敛
-    lbfgs_params.max_iterations = inner_max_iter;    // 最大迭代次数
+    lbfgs_params.mem_size = mem_size;                // Number of historical variables used for approximating the Hessian matrix
+    lbfgs_params.past = past;                        // Length of the history for checking the convergence of the objective function
+    lbfgs_params.g_epsilon = g_epsilon;              // Gradient stopping criterion. Stops iteration when the infinity norm of the gradient is below this value
+    lbfgs_params.min_step = min_step;                // Minimum step size limit
+    lbfgs_params.delta = delta;                      // Convergence criterion based on the change in objective value. If the change is smaller than this value, convergence is assumed
+    lbfgs_params.max_iterations = inner_max_iter;    // Maximum number of iterations    
     double inner_cost;
 
     // begin PHR Augmented Lagrangian Method
     ros::Time start_time = ros::Time::now();
     int iter = 0;
 
+    int ret_code;
     while (true)
     {
         int result = lbfgs::lbfgs_optimize(x, inner_cost, &innerCallback, nullptr, &earlyExit, this, lbfgs_params);
@@ -278,9 +288,8 @@ static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::Vecto
     Eigen::Map<const Eigen::MatrixXd> Pyaw(x.data()+obj.dim_T+2*(obj.piece_xy-1), 1, obj.piece_yaw-1);
     Eigen::Map<Eigen::MatrixXd> gradPyaw(grad.data()+obj.dim_T+2*(obj.piece_xy-1), 1, obj.piece_yaw-1);
 
-    // TODO: tau和T的机制是什么，是怎么进行优化的，这样做的好处是什么
     // get T from tau, generate MINCO trajector
-    Eigen::VectorXd Txy, Tyaw;          
+    Eigen::VectorXd Txy, Tyaw;
     Txy.resize(obj.piece_xy);
     Tyaw.resize(obj.piece_yaw);
     obj.calTfromTau(tau, Txy);
@@ -293,34 +302,33 @@ static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::Vecto
     Eigen::VectorXd gdTxy_jerk, gdTyaw_jerk;
     obj.minco_se2.calJerkGradCT(gdCxy_jerk, gdTxy_jerk, gdCyaw_jerk, gdTyaw_jerk);
     jerk_cost = obj.minco_se2.getTrajJerkCost() * obj.scale_fx;
-                   
+
     // get constrain cost with grad (C,T)
     double constrain_cost = 0.0;
-    Eigen::MatrixXd gdCxy_constrain;
-    Eigen::VectorXd gdTxy_constrain;
-    Eigen::MatrixXd gdCyaw_constrain;
-    Eigen::VectorXd gdTyaw_constrain;
-    obj.calConstrainCostGrad(constrain_cost, gdCxy_constrain, gdTxy_constrain, gdCyaw_constrain, gdTyaw_constrain);
+    Eigen::MatrixXd gdCxy_constrain, gdCyaw_constrain;
+    Eigen::VectorXd gdTxy_constrain, gdTyaw_constrain;
+    // obj.calConstrainCostGrad(constrain_cost, gdCxy_constrain, gdTxy_constrain, gdCyaw_constrain, gdTyaw_constrain);
 
-    // TODO: QT和CT有什么区别
     // get grad (q, T) from (C, T)
+    // Eigen::MatrixXd gdCxy = gdCxy_jerk * obj.scale_fx + gdCxy_constrain;
+    // Eigen::VectorXd gdTxy = gdTxy_jerk * obj.scale_fx + gdTxy_constrain;
+    // Eigen::MatrixXd gdCyaw = gdCyaw_jerk * obj.scale_fx + gdCyaw_constrain;
+    // Eigen::VectorXd gdTyaw = gdTyaw_jerk * obj.scale_fx + gdTyaw_constrain;
     Eigen::MatrixXd gdCxy = gdCxy_jerk * obj.scale_fx;
     Eigen::VectorXd gdTxy = gdTxy_jerk * obj.scale_fx;
     Eigen::MatrixXd gdCyaw = gdCyaw_jerk * obj.scale_fx;
     Eigen::VectorXd gdTyaw = gdTyaw_jerk * obj.scale_fx;
-    Eigen::MatrixXd gradPxy_temp;
-    Eigen::MatrixXd gradPyaw_temp;
+    Eigen::MatrixXd gradPxy_temp, gradPyaw_temp;
     obj.minco_se2.calGradCTtoQT(gdCxy, gdTxy, gradPxy_temp, gdCyaw, gdTyaw, gradPyaw_temp);
     gradPxy = gradPxy_temp;
     gradPyaw = gradPyaw_temp;
 
-    // TODO: tau的代价是怎么算的，梯度又是怎么算的
     // get tau cost with grad
     double tau_cost = obj.rho_T * obj.expC2(tau) * obj.scale_fx;
     double grad_Tsum = obj.rho_T * obj.scale_fx + gdTxy.sum() / obj.piece_xy + gdTyaw.sum() / obj.piece_yaw;
     gradtau = grad_Tsum * obj.getTtoTauGrad(tau);
 
-    return jerk_cost;
+    return jerk_cost + tau_cost;
 }
 
 
@@ -355,7 +363,7 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
     Eigen::Vector2d grad_a = Eigen::Vector2d::Zero();
     Eigen::Vector3d grad_se2 = Eigen::Vector3d::Zero();
     Eigen::Vector3d grad_inv_cos_vphix, grad_sin_phix, grad_inv_cos_vphiy, grad_sin_phiy, grad_cos_xi, grad_inv_cos_xi, grad_sigma;
-    double          gravity = 9.8;          // TODO: 这是重力还是重力系数
+    double          gravity = 9.8;
     double          grad_yaw = 0.0;
     double          grad_dyaw = 0.0;
     double          grad_d2yaw = 0.0;
@@ -365,7 +373,7 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
     double          grad_ax = 0.0;
     double          grad_ay = 0.0;
 
-    // beta matrix: 时间向量的导数
+    // beta matrix
     Eigen::Matrix<double, 6, 1> beta0_xy, beta1_xy, beta2_xy, beta3_xy;
     Eigen::Matrix<double, 6, 1> beta0_yaw, beta1_yaw, beta2_yaw, beta3_yaw;
 
@@ -375,13 +383,13 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
     int yaw_idx = 0;
     double base_time = 0.0;
 
-    for(int i=0; i<piece_xy; i++)
+    for(int i=0; i<piece_xy; i++) // i=1
     {
         const Eigen::Matrix<double, 6, 2> &c_xy = minco_se2.pos_minco.getCoeffs().block<6, 2>(i*6, 0);
         step = minco_se2.pos_minco.T1(i) / int_K;
         s1 = 0.0;
 
-        for(int j=0; j<=int_K; j++)
+        for(int j=0; j<=int_K; j++) //j=8
         {
             alpha = j / int_K;
 
@@ -411,8 +419,9 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
             acc = c_xy.transpose() * beta2_xy;
             jer = c_xy.transpose() * beta3_xy;
 
-            // analyse yaw
-            double now_time = s1 +base_time;        // TODO：这个base_time是干什么的
+            // analyse yaw 
+            // TODO：这个base_time是干什么的
+            double now_time = s1 +base_time;
             yaw_idx = int((now_time) / minco_se2.yaw_minco.T1(i));
             if (yaw_idx >= piece_yaw)
                 yaw_idx = piece_yaw - 1;
@@ -439,6 +448,16 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
             yb = Eigen::Vector2d(-syaw, cyaw);
             lon_acc = acc.dot(xb);
             lat_acc = acc.dot(yb);
+
+            // TODO: user-defined cost: surface variation
+            if (j==0 || j==int_K)
+                omega = 0.5 * rho_ter * step * scale_fx;
+            else
+                omega = rho_ter * step * scale_fx;
+            double user_cost = omega * sigma * sigma;
+            cost += user_cost;
+            grad_se2 += omega * grad_sigma * sigma * 2.0;
+            gdTxy(i) += user_cost / int_K;
 
             // non-holonomic
             double nonh_lambda = lambda[equal_idx];
@@ -538,7 +557,7 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
             non_equal_idx++;
             constrain_idx++;
 
-            // surface variation
+            // TODO: user-defined: surface variation
             double sig_mu = mu[non_equal_idx];
             if (use_scaling)
                 gx[non_equal_idx] = (sigma - max_sig) * scale_cx(constrain_idx);
@@ -584,6 +603,7 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
             // ∂p/∂Txy, ∂v/∂Txy, ∂a/∂Txy
             gdTxy(i) += (grad_p.dot(vel) + grad_v.dot(acc) + grad_a.dot(jer) ) * alpha;
             // ∂yaw/∂Cyaw, ∂dyaw/∂Cyaw, ∂d2yaw/∂Cyaw
+            // TODO:这里有bug
             gdCyaw.block<6, 1>(yaw_idx * 6, 0) += (beta0_yaw * grad_yaw + beta1_yaw * grad_dyaw + beta2_yaw * grad_d2yaw);
             // ∂yaw/∂Tyaw, ∂dyaw/∂Tyaw, ∂d2yaw/∂Tyaw
             gdTyaw(yaw_idx) += -(grad_yaw * dyaw + grad_dyaw * d2yaw) * yaw_idx;

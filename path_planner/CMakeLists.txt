@@ -24,12 +24,7 @@ catkin_package(
   CATKIN_DEPENDS roscpp rospy std_msgs nav_msgs geometry_msgs
 )
 
-add_library(coverage_path_planner src/coverage_path_planner.cpp)
 add_library(trajectory_optimization src/alm_traj_opt.cpp)
-
-target_link_libraries(coverage_path_planner
-  ${catkin_LIBRARIES}
-)
 
 target_link_libraries(trajectory_optimization
   ${catkin_LIBRARIES}
@@ -38,7 +33,6 @@ target_link_libraries(trajectory_optimization
 add_executable(planner_node src/planner_node.cpp)
 
 target_link_libraries(planner_node
-  coverage_path_planner
   trajectory_optimization
   ${catkin_LIBRARIES}
 )

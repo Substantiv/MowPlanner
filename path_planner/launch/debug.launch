@@ -1,5 +1,9 @@
 <launch>
     <rosparam file="$(find path_planner)/config/param.yaml" command="load" />
 
-    <node name="coverage_path_node" pkg="path_planner" type="planner_node" />
+    <node name="path_pub" pkg="path_planner" type="path_pub.py"/>
+
+    <node name="traj_opti" pkg="path_planner" type="planner_node"/>
+
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find path_planner)/config/traj.rviz"/>
 </launch>
