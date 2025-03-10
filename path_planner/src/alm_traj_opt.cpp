@@ -307,7 +307,7 @@ static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::Vecto
     double constrain_cost = 0.0;
     Eigen::MatrixXd gdCxy_constrain, gdCyaw_constrain;
     Eigen::VectorXd gdTxy_constrain, gdTyaw_constrain;
-    // obj.calConstrainCostGrad(constrain_cost, gdCxy_constrain, gdTxy_constrain, gdCyaw_constrain, gdTyaw_constrain);
+    obj.calConstrainCostGrad(constrain_cost, gdCxy_constrain, gdTxy_constrain, gdCyaw_constrain, gdTyaw_constrain);
 
     // get grad (q, T) from (C, T)
     // Eigen::MatrixXd gdCxy = gdCxy_jerk * obj.scale_fx + gdCxy_constrain;
@@ -332,8 +332,9 @@ static double innerCallback(void* ptrObj, const Eigen::VectorXd& x, Eigen::Vecto
 }
 
 
-void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eigen::VectorXd &gdTxy, \
-                                        Eigen::MatrixXd& gdCyaw, Eigen::VectorXd &gdTyaw)
+void ALMTrajOpt::calConstrainCostGrad(double& cost,\
+                                     Eigen::MatrixXd& gdCxy, Eigen::VectorXd &gdTxy, \
+                                     Eigen::MatrixXd& gdCyaw, Eigen::VectorXd &gdTyaw)
 {
     cost = 0.0;
     gdCxy.resize(6*piece_xy, 2);
@@ -391,7 +392,7 @@ void ALMTrajOpt::calConstrainCostGrad(double& cost, Eigen::MatrixXd& gdCxy, Eige
 
         for(int j=0; j<=int_K; j++) //j=8
         {
-            alpha = j / int_K;
+            alpha = 1. / int_K * j;
 
             grad_p.setZero();
             grad_v.setZero();
